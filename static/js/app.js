@@ -116,8 +116,25 @@ async function updateStatus() {
         document.getElementById('progressCount').textContent = `${data.processed} / ${data.total_queries}`;
         
         // Update stats
-        document.getElementById('currentProxy').textContent = data.current_proxy || '-';
-        document.getElementById('scrapedCount').textContent = data.success_count;
+        // Mask proxy IP (show only first two octets)
+        let maskedProxy = '-';
+        if (data.current_proxy) {
+            const parts = data.current_proxy.split(':');
+            if (parts.length === 2) {
+                const ipParts = parts[0].split('.');
+                if (ipParts.length === 4) {
+                    maskedProxy = `${ipParts[0]}.${ipParts[1]}.xx.xx:xxxx`;
+                } else {
+                    maskedProxy = data.current_proxy;
+                }
+            } else {
+                maskedProxy = data.current_proxy;
+            }
+        }
+        document.getElementById('currentProxy').textContent = maskedProxy;
+        
+        // Show actual number of businesses scraped (not queries)
+        document.getElementById('scrapedCount').textContent = data.results ? data.results.length : 0;
         document.getElementById('failedCount').textContent = data.failure_count;
         
         // Log current query
