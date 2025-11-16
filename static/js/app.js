@@ -1,208 +1,99 @@
-// Google Maps Scraper - Frontend JavaScript
+// Modern Google Maps Scraper - Frontend Logic
 
-// Global state
 let statusPollingInterval = null;
 let isScrapingActive = false;
+let lastProcessedCount = 0;
+let scrapedBusinesses = new Set();
 
 // DOM Elements
-const fileInput = document.getElementById('fileInput');
-const uploadBtn = document.getElementById('uploadBtn');
-const addRowBtn = document.getElementById('addRowBtn');
-const startManualBtn = document.getElementById('startManualBtn');
-const stopBtn = document.getElementById('stopBtn');
-const downloadCsvBtn = document.getElementById('downloadCsvBtn');
-const downloadJsonBtn = document.getElementById('downloadJsonBtn');
-const manualEntryBody = document.getElementById('manualEntryBody');
+const startBtn = document.getElementById('startBtn');
+const btnText = document.querySelector('.btn-text');
+const btnLoader = document.querySelector('.btn-loader');
+const keywordInput = document.getElementById('keyword');
+const locationInput = document.getElementById('location');
+const statusSection = document.getElementById('statusSection');
 const resultsSection = document.getElementById('resultsSection');
-const messageContainer = document.getElementById('messageContainer');
-
-// Status elements
-const statusValue = document.getElementById('statusValue');
-const currentQuery = document.getElementById('currentQuery');
-const currentProxy = document.getElementById('currentProxy');
-const processedCount = document.getElementById('processedCount');
-const successCount = document.getElementById('successCount');
-const failureCount = document.getElementById('failureCount');
-const progressFill = document.getElementById('progressFill');
-const progressText = document.getElementById('progressText');
-const totalResults = document.getElementById('totalResults');
+const completionMessage = document.getElementById('completionMessage');
+const liveLog = document.getElementById('liveLog');
+const clearLogBtn = document.getElementById('clearLogBtn');
+const downloadBtn = document.getElementById('downloadBtn');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
-    setupEventListeners();
-    console.log('Google Maps Scraper initialized');
+    startBtn.addEventListener('click', handleStartScraping);
+    clearLogBtn.addEventListener('click', clearLog);
+    downloadBtn.addEventListener('click', () => downloadResults('csv'));
+    
+    addLogEntry('System ready. Enter keyword and location to start scraping.', 'info');
 });
 
-// Setup event listeners
-function setupEventListeners() {
-    uploadBtn.addEventListener('click', handleFileUpload);
-    addRowBtn.addEventListener('click', addManualEntryRow);
-    startManualBtn.addEventListener('click', handleManualStart);
-    stopBtn.addEventListener('click', handleStop);
-    downloadCsvBtn.addEventListener('click', () => downloadResults('csv'));
-    downloadJsonBtn.addEventListener('click', () => downloadResults('json'));
-}
-
-// File Upload Handler
-async function handleFileUpload() {
-    const file = fileInput.files[0];
+// Start Scraping
+async function handleStartScraping() {
+    const keyword = keywordInput.value.trim();
+    const location = locationInput.value.trim();
     
-    if (!file) {
-        showMessage('Please select a file', 'error');
+    if (!keyword || !location) {
+        addLogEntry('Error: Please enter both keyword and location', 'error');
         return;
     }
     
-    // Validate file type
-    const validExtensions = ['.csv', '.xlsx', '.xls'];
-    const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+    // Disable button and show loader
+    startBtn.disabled = true;
+    btnText.style.display = 'none';
+    btnLoader.style.display = 'flex';
     
-    if (!validExtensions.includes(fileExtension)) {
-        showMessage('Invalid file format. Please upload CSV or Excel file.', 'error');
-        return;
-    }
+    // Show status section
+    statusSection.style.display = 'block';
     
-    const formData = new FormData();
-    formData.append('file', file);
+    // Reset state
+    lastProcessedCount = 0;
+    scrapedBusinesses.clear();
+    document.getElementById('resultsBody').innerHTML = '';
+    completionMessage.style.display = 'none';
+    
+    addLogEntry(`Starting scrape: "${keyword}" in "${location}"`, 'info');
     
     try {
-        uploadBtn.disabled = true;
-        uploadBtn.textContent = 'Uploading...';
-        
-        const response = await fetch('/upload', {
-            method: 'POST',
-            body: formData
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            showMessage(`Scraping started with ${data.query_count} queries`, 'success');
-            startStatusPolling();
-            updateUIForScraping(true);
-        } else {
-            showMessage(data.error || 'Upload failed', 'error');
-        }
-    } catch (error) {
-        showMessage('Error uploading file: ' + error.message, 'error');
-    } finally {
-        uploadBtn.disabled = false;
-        uploadBtn.textContent = 'Upload & Start';
-    }
-}
-
-// Add manual entry row
-function addManualEntryRow() {
-    const row = document.createElement('tr');
-    row.className = 'entry-row';
-    row.innerHTML = `
-        <td><input type="text" class="keyword-input" placeholder="e.g., restaurants" /></td>
-        <td><input type="text" class="zipcode-input" placeholder="e.g., New York or 10001" /></td>
-        <td><input type="text" class="url-input" placeholder="Optional" /></td>
-        <td><button class="btn-remove" onclick="removeRow(this)">Remove</button></td>
-    `;
-    manualEntryBody.appendChild(row);
-}
-
-// Remove row function (global scope for onclick)
-function removeRow(button) {
-    const row = button.closest('tr');
-    // Keep at least one row
-    if (manualEntryBody.children.length > 1) {
-        row.remove();
-    } else {
-        showMessage('At least one row is required', 'error');
-    }
-}
-
-// Handle manual start
-async function handleManualStart() {
-    const queries = [];
-    const rows = manualEntryBody.querySelectorAll('.entry-row');
-    
-    // Collect data from rows
-    rows.forEach((row, index) => {
-        const keyword = row.querySelector('.keyword-input').value.trim();
-        const zipCode = row.querySelector('.zipcode-input').value.trim();
-        const url = row.querySelector('.url-input').value.trim();
-        
-        if (keyword && zipCode) {
-            queries.push({
-                keyword: keyword,
-                zip_code: zipCode,
-                url: url || ''
-            });
-        }
-    });
-    
-    if (queries.length === 0) {
-        showMessage('Please enter at least one valid query (keyword and location required)', 'error');
-        return;
-    }
-    
-    try {
-        startManualBtn.disabled = true;
-        startManualBtn.textContent = 'Starting...';
-        
         const response = await fetch('/start', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ queries: queries })
+            body: JSON.stringify({
+                queries: [{
+                    keyword: keyword,
+                    zip_code: location,
+                    url: ''
+                }]
+            })
         });
         
         const data = await response.json();
         
         if (response.ok) {
-            showMessage(`Scraping started with ${data.query_count} queries`, 'success');
+            addLogEntry(`✓ Scraping initiated with ${data.query_count} query`, 'success');
             startStatusPolling();
-            updateUIForScraping(true);
+            isScrapingActive = true;
         } else {
-            showMessage(data.error || 'Failed to start scraping', 'error');
+            addLogEntry(`✗ Error: ${data.error}`, 'error');
+            resetButton();
         }
     } catch (error) {
-        showMessage('Error starting scraping: ' + error.message, 'error');
-    } finally {
-        startManualBtn.disabled = false;
-        startManualBtn.textContent = 'Start Scraping';
+        addLogEntry(`✗ Network error: ${error.message}`, 'error');
+        resetButton();
     }
 }
 
-// Handle stop
-async function handleStop() {
-    try {
-        stopBtn.disabled = true;
-        
-        const response = await fetch('/stop', {
-            method: 'POST'
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            showMessage(data.message, 'info');
-        }
-    } catch (error) {
-        showMessage('Error stopping scraping: ' + error.message, 'error');
-    } finally {
-        stopBtn.disabled = false;
-    }
-}
-
-// Start status polling
+// Status Polling
 function startStatusPolling() {
     if (statusPollingInterval) {
         clearInterval(statusPollingInterval);
     }
     
-    // Poll every 2 seconds
-    statusPollingInterval = setInterval(updateStatus, 2000);
-    
-    // Update immediately
-    updateStatus();
+    statusPollingInterval = setInterval(updateStatus, 1500);
+    updateStatus(); // Immediate first call
 }
 
-// Stop status polling
 function stopStatusPolling() {
     if (statusPollingInterval) {
         clearInterval(statusPollingInterval);
@@ -210,111 +101,140 @@ function stopStatusPolling() {
     }
 }
 
-// Update status from server
+// Update Status
 async function updateStatus() {
     try {
         const response = await fetch('/status');
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
         const data = await response.json();
-        
-        // Update status display
-        statusValue.textContent = capitalizeFirst(data.status);
-        currentQuery.textContent = data.current_query || '-';
-        currentProxy.textContent = data.current_proxy || '-';
-        processedCount.textContent = `${data.processed} / ${data.total_queries}`;
-        successCount.textContent = data.success_count;
-        failureCount.textContent = data.failure_count;
         
         // Update progress bar
         const percentage = data.total_queries > 0 
             ? Math.round((data.processed / data.total_queries) * 100) 
             : 0;
-        progressFill.style.width = percentage + '%';
-        progressText.textContent = percentage + '%';
+        document.getElementById('progressFill').style.width = percentage + '%';
+        document.getElementById('progressText').textContent = percentage + '%';
+        document.getElementById('progressCount').textContent = `${data.processed} / ${data.total_queries}`;
         
-        // Check if scraping is complete or stopped
+        // Update stats
+        document.getElementById('currentProxy').textContent = data.current_proxy || '-';
+        document.getElementById('scrapedCount').textContent = data.success_count;
+        document.getElementById('failedCount').textContent = data.failure_count;
+        
+        // Log current query
+        if (data.current_query && data.status === 'running') {
+            if (data.processed > lastProcessedCount) {
+                addLogEntry(`Processing: ${data.current_query} via ${data.current_proxy}`, 'info');
+                lastProcessedCount = data.processed;
+            }
+        }
+        
+        // Update results table with new businesses
+        if (data.results && data.results.length > 0) {
+            data.results.forEach(business => {
+                const businessId = business.name + business.phone;
+                if (!scrapedBusinesses.has(businessId)) {
+                    scrapedBusinesses.add(businessId);
+                    addBusinessToTable(business);
+                    addLogEntry(`✓ Scraped: ${business.name} — Rating: ${business.rating} — Phone: ${business.phone}`, 'success');
+                }
+            });
+            
+            // Show results section
+            if (data.results.length > 0) {
+                resultsSection.style.display = 'block';
+                document.getElementById('totalResults').textContent = `${data.results.length} businesses found`;
+            }
+        }
+        
+        // Check if completed
         if (data.status === 'completed' || data.status === 'stopped') {
             stopStatusPolling();
-            updateUIForScraping(false);
-            
-            if (data.results && data.results.length > 0) {
-                showResultsSection(data.results.length);
-                showMessage(`Scraping completed! Found ${data.results.length} businesses.`, 'success');
-            } else {
-                showMessage('Scraping completed but no results found. Try different keywords or check logs.', 'info');
-            }
-            
-            // Show summary
-            if (data.failure_count > 0) {
-                showMessage(`${data.failure_count} queries failed. Check proxy configuration or try again.`, 'error');
-            }
-        } else if (data.status === 'running') {
-            isScrapingActive = true;
+            handleCompletion(data);
         }
         
     } catch (error) {
         console.error('Error fetching status:', error);
-        // Don't show error message for every poll failure, just log it
     }
 }
 
-// Update UI for scraping state
-function updateUIForScraping(isActive) {
-    isScrapingActive = isActive;
+// Handle Completion
+function handleCompletion(data) {
+    isScrapingActive = false;
+    resetButton();
     
-    // Disable/enable inputs
-    uploadBtn.disabled = isActive;
-    startManualBtn.disabled = isActive;
-    addRowBtn.disabled = isActive;
-    stopBtn.disabled = !isActive;
-    fileInput.disabled = isActive;
-    
-    // Disable/enable manual entry inputs
-    const inputs = manualEntryBody.querySelectorAll('input');
-    inputs.forEach(input => input.disabled = isActive);
-    
-    const removeButtons = manualEntryBody.querySelectorAll('.btn-remove');
-    removeButtons.forEach(btn => btn.disabled = isActive);
+    if (data.status === 'completed') {
+        addLogEntry(`✓ Scraping completed! Total: ${data.success_count} successful, ${data.failure_count} failed`, 'success');
+        completionMessage.style.display = 'block';
+        
+        // Scroll to completion message
+        setTimeout(() => {
+            completionMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 500);
+    } else {
+        addLogEntry('Scraping stopped by user', 'info');
+    }
 }
 
-// Show results section
-function showResultsSection(count) {
-    totalResults.textContent = count;
-    resultsSection.style.display = 'block';
+// Add Business to Table
+function addBusinessToTable(business) {
+    const tbody = document.getElementById('resultsBody');
+    const row = document.createElement('tr');
     
-    // Scroll to results
-    resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    const statusBadge = '<span class="status-badge status-success">✓ Scraped</span>';
+    const rating = business.rating !== 'Not given' ? `<span class="rating-stars">⭐ ${business.rating}</span>` : 'Not given';
+    const website = business.website !== 'Not given' 
+        ? `<a href="${business.website}" target="_blank" class="website-link">Visit</a>` 
+        : 'Not given';
+    
+    row.innerHTML = `
+        <td>${statusBadge}</td>
+        <td><strong>${business.name}</strong></td>
+        <td>${business.phone}</td>
+        <td>${business.email}</td>
+        <td>${rating}</td>
+        <td>${website}</td>
+    `;
+    
+    tbody.appendChild(row);
 }
 
-// Download results
+// Add Log Entry
+function addLogEntry(message, type = 'info') {
+    const now = new Date();
+    const time = now.toLocaleTimeString('en-US', { hour12: false });
+    
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    
+    let className = 'log-info';
+    if (type === 'success') className = 'log-success';
+    if (type === 'error') className = 'log-error';
+    
+    entry.innerHTML = `<span class="log-time">[${time}]</span> <span class="${className}">${message}</span>`;
+    
+    liveLog.appendChild(entry);
+    
+    // Auto-scroll to bottom
+    liveLog.scrollTop = liveLog.scrollHeight;
+}
+
+// Clear Log
+function clearLog() {
+    liveLog.innerHTML = '';
+    addLogEntry('Log cleared', 'info');
+}
+
+// Reset Button
+function resetButton() {
+    startBtn.disabled = false;
+    btnText.style.display = 'block';
+    btnLoader.style.display = 'none';
+}
+
+// Download Results
 function downloadResults(format) {
     window.location.href = `/download/${format}`;
-    showMessage(`Downloading results as ${format.toUpperCase()}...`, 'success');
-}
-
-// Show message
-function showMessage(text, type = 'info') {
-    const message = document.createElement('div');
-    message.className = `message ${type}`;
-    message.textContent = text;
-    
-    messageContainer.appendChild(message);
-    
-    // Auto-remove after 5 seconds
-    setTimeout(() => {
-        message.style.opacity = '0';
-        setTimeout(() => message.remove(), 300);
-    }, 5000);
-}
-
-// Utility: Capitalize first letter
-function capitalizeFirst(str) {
-    if (!str) return '';
-    return str.charAt(0).toUpperCase() + str.slice(1);
+    addLogEntry(`Downloading results as ${format.toUpperCase()}...`, 'success');
 }
 
 // Cleanup on page unload
