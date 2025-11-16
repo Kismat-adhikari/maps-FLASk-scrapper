@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Google Maps Scraper</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=5">
+    <!-- MapLibre GL JS CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" />
 </head>
 <body>
     <div class="container">
@@ -94,6 +96,14 @@ https://www.google.com/maps/place/Another+Business/@40.7308,-73.9973,17z
             <div id="statusSection" class="status-section" style="display: none;">
                 <h2>Scraping Status</h2>
                 
+                <!-- Currently Scraping Info -->
+                <div class="current-scraping-info">
+                    <div class="current-business">
+                        <span class="label">Currently Scraping:</span>
+                        <span id="currentBusiness" class="value">-</span>
+                    </div>
+                </div>
+                
                 <!-- Progress Bar -->
                 <div class="progress-container">
                     <div class="progress-bar">
@@ -105,19 +115,36 @@ https://www.google.com/maps/place/Another+Business/@40.7308,-73.9973,17z
                     </div>
                 </div>
 
-                <!-- Stats Grid -->
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-label">Active Proxy</div>
-                        <div id="currentProxy" class="stat-value">-</div>
+                <!-- Stats and Map Container -->
+                <div class="stats-map-container">
+                    <!-- Stats Grid -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Active Proxy</div>
+                            <div id="currentProxy" class="stat-value">-</div>
+                        </div>
+                        <div class="stat-card success">
+                            <div class="stat-label">Scraped</div>
+                            <div id="scrapedCount" class="stat-value">0</div>
+                        </div>
+                        <div class="stat-card danger">
+                            <div class="stat-label">Failed</div>
+                            <div id="failedCount" class="stat-value">0</div>
+                        </div>
                     </div>
-                    <div class="stat-card success">
-                        <div class="stat-label">Scraped</div>
-                        <div id="scrapedCount" class="stat-value">0</div>
-                    </div>
-                    <div class="stat-card danger">
-                        <div class="stat-label">Failed</div>
-                        <div id="failedCount" class="stat-value">0</div>
+                    
+                    <!-- Live Map -->
+                    <div class="map-container">
+                        <div class="map-header">
+                            <span>🗺️ Live Scraping Map</span>
+                        </div>
+                        <div id="scrapingMap"></div>
+                        <div class="map-legend">
+                            <div class="legend-item"><span class="legend-dot grey"></span> Waiting</div>
+                            <div class="legend-item"><span class="legend-dot yellow"></span> Scraping</div>
+                            <div class="legend-item"><span class="legend-dot green"></span> Success</div>
+                            <div class="legend-item"><span class="legend-dot red"></span> Failed</div>
+                        </div>
                     </div>
                 </div>
 
@@ -169,6 +196,8 @@ https://www.google.com/maps/place/Another+Business/@40.7308,-73.9973,17z
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/app.js') }}?v=2"></script>
+    <!-- MapLibre GL JS -->
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=5"></script>
 </body>
 </html>

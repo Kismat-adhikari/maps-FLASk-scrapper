@@ -5,6 +5,12 @@ let isScrapingActive = false;
 let lastProcessedCount = 0;
 let scrapedBusinesses = new Set();
 
+// Map variables (MapLibre GL JS)
+let map = null;
+let markers = {};
+let businessData = [];
+let markerElements = {};
+
 // DOM Elements
 const startBtn = document.getElementById('startBtn');
 const btnText = document.querySelector('.btn-text');
@@ -40,6 +46,9 @@ document.addEventListener('DOMContentLoaded', () => {
     fileUploadInput.addEventListener('change', handleFileSelect);
     
     addLogEntry('System ready. Choose your input method and start scraping.', 'info');
+    
+    // Initialize map after a short delay to ensure DOM is ready
+    setTimeout(initializeMap, 100);
 });
 
 // Handle file selection
@@ -149,6 +158,7 @@ async function handleStartScraping() {
     scrapedBusinesses.clear();
     document.getElementById('resultsBody').innerHTML = '';
     completionMessage.style.display = 'none';
+    resetMap();
     
     // Log based on mode
     if (isFileUpload) {
@@ -276,6 +286,9 @@ async function updateStatus() {
                     addLogEntry(`Scraped: ${business.name} - Rating: ${business.rating} - Phone: ${business.phone}`, 'success');
                 }
             });
+            
+            // Update map with results
+            updateMap(data.results, data.current_query);
         }
         
         // Check if completed
@@ -384,6 +397,193 @@ function resetButton() {
 function downloadResults(format) {
     window.location.href = `/download/${format}`;
     addLogEntry(`Downloading results as ${format.toUpperCase()}...`, 'success');
+}
+
+// Initialize MapLibre GL JS Map
+function initializeMap() {
+    console.log('Initializing map...');
+    try {
+        const mapElement = document.getElementById('scrapingMap');
+        console.log('Map element found:', mapElement);
+        if (!map && mapElement) {
+            console.log('Creating new MapLibre map...');
+            map = new maplibregl.Map({
+                container: 'scrapingMap',
+                style: {
+                    version: 8,
+                    sources: {
+                        'osm': {
+                            type: 'raster',
+                            tiles: ['https://a.tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                            tileSize: 256,
+                            attribution: '© OpenStreetMap contributors'
+                        }
+                    },
+                    layers: [{
+                        id: 'osm',
+                        type: 'raster',
+                        source: 'osm',
+                        minzoom: 0,
+                        maxzoom: 19
+                    }]
+                },
+                center: [-80.1918, 25.7617], // Miami [lng, lat]
+                zoom: 10,
+                attributionControl: true
+            });
+            
+            // Add navigation controls
+            map.addControl(new maplibregl.NavigationControl(), 'top-right');
+            
+            console.log('MapLibre GL JS initialized successfully');
+        }
+    } catch (error) {
+        console.error('Error initializing map:', error);
+    }
+}
+
+// Map Update Functions with MapLibre GL JS
+function updateMap(results, currentQuery) {
+    console.log('updateMap called with', results.length, 'results');
+    if (!map) {
+        console.error('Map not initialized!');
+        return;
+    }
+    if (!results) {
+        console.error('No results provided!');
+        return;
+    }
+    
+    // Store business data
+    businessData = results;
+    
+    // Update currently scraping business
+    if (currentQuery) {
+        document.getElementById('currentBusiness').textContent = currentQuery;
+    }
+    
+    // Track bounds for auto-zoom
+    const bounds = new maplibregl.LngLatBounds();
+    let hasValidCoords = false;
+    
+    // Add markers ONLY for NEW businesses (incremental)
+    results.forEach((business, index) => {
+        // Skip if marker already exists
+        if (markerElements[index]) {
+            bounds.extend(markerElements[index].getLngLat());
+            hasValidCoords = true;
+            return;
+        }
+        
+        const lat = parseFloat(business.latitude);
+        const lng = parseFloat(business.longitude);
+        
+        console.log(`NEW Business ${index}: ${business.name}, lat=${lat}, lng=${lng}`);
+        
+        // Skip if no valid coordinates
+        if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
+            console.warn(`Skipping business ${index} - invalid coordinates`);
+            return;
+        }
+        
+        hasValidCoords = true;
+        bounds.extend([lng, lat]);
+        
+        // Determine marker status (all success for now)
+        const status = 'success';
+        const markerColor = getMarkerColor(status);
+        
+        // Create marker element
+        const el = document.createElement('div');
+        el.className = `map-marker marker-${markerColor}`;
+        el.innerHTML = '<div class="marker-dot"></div>';
+        
+        // Create MapLibre marker
+        const marker = new maplibregl.Marker({
+            element: el,
+            anchor: 'bottom'
+        })
+        .setLngLat([lng, lat])
+        .addTo(map);
+        
+        // Create popup content
+        const popupHTML = `
+            <div class="maplibre-popup">
+                <div class="popup-header">
+                    <h3>${business.name || 'Unknown Business'}</h3>
+                    <span class="popup-badge badge-${markerColor}">✓ Scraped</span>
+                </div>
+                <div class="popup-body">
+                    <div class="popup-row">
+                        <span class="popup-icon">📍</span>
+                        <span>${business.full_address || 'Address not available'}</span>
+                    </div>
+                    <div class="popup-row">
+                        <span class="popup-icon">📞</span>
+                        <span>${business.phone || 'Not given'}</span>
+                    </div>
+                    <div class="popup-row">
+                        <span class="popup-icon">⭐</span>
+                        <span>${business.rating || 'N/A'} ${business.review_count ? `(${business.review_count} reviews)` : ''}</span>
+                    </div>
+                    ${business.email && business.email !== 'Not given' ? `
+                    <div class="popup-row">
+                        <span class="popup-icon">✉️</span>
+                        <span>${business.email}</span>
+                    </div>
+                    ` : ''}
+                </div>
+                <div class="popup-footer">
+                    <a href="${business.url || '#'}" target="_blank" class="popup-link">
+                        View on Google Maps →
+                    </a>
+                </div>
+            </div>
+        `;
+        
+        // Add popup
+        const popup = new maplibregl.Popup({
+            offset: 25,
+            closeButton: true,
+            closeOnClick: false,
+            maxWidth: '300px'
+        }).setHTML(popupHTML);
+        
+        marker.setPopup(popup);
+        
+        // Store marker reference
+        markerElements[index] = marker;
+    });
+    
+    // Auto-fit map to show all markers with smooth animation
+    if (hasValidCoords) {
+        map.fitBounds(bounds, {
+            padding: {top: 50, bottom: 50, left: 50, right: 50},
+            maxZoom: 13,
+            duration: 1500
+        });
+    }
+}
+
+function getMarkerColor(status) {
+    switch(status) {
+        case 'waiting': return 'grey';
+        case 'scraping': return 'yellow';
+        case 'success': return 'green';
+        case 'failed': return 'red';
+        default: return 'grey';
+    }
+}
+
+// Reset map on new scrape
+function resetMap() {
+    if (map) {
+        Object.values(markerElements).forEach(marker => marker.remove());
+        markerElements = {};
+        businessData = [];
+        map.flyTo({center: [-80.1918, 25.7617], zoom: 10, duration: 1000});
+    }
+    document.getElementById('currentBusiness').textContent = '-';
 }
 
 // Cleanup on page unload

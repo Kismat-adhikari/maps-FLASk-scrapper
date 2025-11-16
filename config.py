@@ -12,7 +12,7 @@ class Config:
     ROTATION_THRESHOLD = 14
     REQUEST_TIMEOUT = 30
     PAGE_LOAD_TIMEOUT = 60
-    HEADLESS = False
+    HEADLESS = False  # Set to False to see browser
     
     # Browser settings
     VIEWPORT_WIDTH = 1920

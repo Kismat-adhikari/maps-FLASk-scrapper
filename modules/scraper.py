@@ -30,9 +30,9 @@ class GoogleMapsScraper:
         self.page: Optional[Page] = None
         self.logger = logging.getLogger(__name__)
         
-        # Timeouts
-        self.request_timeout = 30000  # 30 seconds
-        self.page_load_timeout = 60000  # 60 seconds
+        # Timeouts (Optimized for speed)
+        self.request_timeout = 15000  # 15 seconds (reduced from 30)
+        self.page_load_timeout = 30000  # 30 seconds (reduced from 60)
     
     async def initialize_browser(self, proxy: Dict) -> bool:
         """
@@ -124,8 +124,8 @@ class GoogleMapsScraper:
             search_button = self.page.locator('button[id="searchbox-searchbutton"]')
             await search_button.click()
             
-            # Wait for results to load
-            await asyncio.sleep(3)  # Give time for results to populate
+            # Wait for results to load (optimized)
+            await asyncio.sleep(1.5)  # Reduced from 3 seconds
             
             # Check for CAPTCHA again after search
             if await self._detect_captcha():
@@ -194,8 +194,8 @@ class GoogleMapsScraper:
         businesses = []
         
         try:
-            # Wait for results to load
-            await asyncio.sleep(3)
+            # Wait for results to load (optimized)
+            await asyncio.sleep(1.5)  # Reduced from 3 seconds
             
             # Scroll to load more results
             await self._scroll_results()
@@ -232,7 +232,7 @@ class GoogleMapsScraper:
                     
                     # Navigate to business page
                     await self.page.goto(business_url, timeout=self.page_load_timeout, wait_until='domcontentloaded')
-                    await asyncio.sleep(2)  # Wait for details to load
+                    await asyncio.sleep(1)  # Wait for details to load (optimized)
                     
                     # Extract comprehensive business info
                     business_info = await DataExtractor.extract_detailed_business_info(self.page)
@@ -250,23 +250,23 @@ class GoogleMapsScraper:
                         businesses.append(business_info)
                         self.logger.info(f"Extracted: {business_info.get('name')}")
                         
-                        # Save incrementally if callback provided
+                        # Call callback immediately for real-time updates
                         if csv_callback:
                             try:
                                 csv_callback(business_info)
                             except Exception as e:
-                                self.logger.warning(f"Error in CSV callback: {e}")
+                                self.logger.warning(f"Error in callback: {e}")
                     
                     # Navigate back to results page
                     await self.page.goto(results_url, timeout=self.page_load_timeout, wait_until='domcontentloaded')
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(0.5)  # Optimized from 1 second
                     
                 except Exception as e:
                     self.logger.warning(f"Error extracting business {idx}: {e}")
                     # Try to go back to results page
                     try:
                         await self.page.goto(results_url, timeout=self.page_load_timeout, wait_until='domcontentloaded')
-                        await asyncio.sleep(1)
+                        await asyncio.sleep(0.5)  # Optimized from 1 second
                     except:
                         pass
                     continue
@@ -446,7 +446,7 @@ class GoogleMapsScraper:
             # Navigate to URL
             try:
                 await self.page.goto(url, timeout=self.page_load_timeout)
-                await asyncio.sleep(3)
+                await asyncio.sleep(1.5)  # Optimized from 3 seconds
             except Exception as e:
                 self.logger.error(f"Failed to load URL: {e}")
                 self.proxy_manager.mark_failure(proxy)

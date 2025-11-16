@@ -129,10 +129,14 @@ async def scrape_queries_async(queries):
     csv_headers_written = False
     
     def save_to_csv(business_info):
-        """Callback to save each business to CSV incrementally."""
+        """Callback to save each business to CSV incrementally AND update app_state for real-time map."""
         nonlocal csv_headers_written
         
         try:
+            # Add to app_state results immediately for real-time map updates
+            app_state['results'].append(business_info)
+            logger.debug(f"Added business to app_state for real-time map: {business_info.get('name')}")
+            
             df = pd.DataFrame([business_info])
             
             # Write headers only once
@@ -163,11 +167,11 @@ async def scrape_queries_async(queries):
         logger.info(f"Using proxy: {app_state['current_proxy']}")
         
         try:
-            # Scrape the query with incremental CSV saving
+            # Scrape the query with incremental CSV saving (businesses are added to app_state in real-time via callback)
             businesses = await scraper.scrape_query(query, csv_callback=save_to_csv)
             
             if businesses:
-                app_state['results'].extend(businesses)
+                # Don't extend results here - already added via callback for real-time updates
                 app_state['success_count'] += 1
                 logger.info(f"Query successful: {len(businesses)} businesses found")
             else:

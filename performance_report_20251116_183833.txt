@@ -1,0 +1,22 @@
+============================================================
+GOOGLE MAPS SCRAPER - PERFORMANCE TEST REPORT
+============================================================
+
+Test Date: 2025-11-16 18:38:33
+
+Queries Tested:
+  1. gym in Miami
+  2. restaurant in Miami
+
+Results:
+  Total Queries: 2
+  Total Businesses Scraped: 43
+  Expected Maximum: 120 businesses
+  Success Rate: 35.8%
+
+Performance:
+  Total Time: 2013.71 seconds (33.56 minutes)
+  Average per Query: 1006.85 seconds
+  Average per Business: 46.83 seconds
+
+============================================================

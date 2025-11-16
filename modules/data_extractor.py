@@ -55,15 +55,47 @@ class DataExtractor:
             except:
                 pass
             
-            # Extract coordinates from URL
+            # Extract coordinates from URL (multiple methods)
             try:
+                logger.debug(f"Current URL for coordinate extraction: {current_url}")
+                
+                # Method 1: Extract from @ symbol (e.g., @40.7128,-74.0060,17z)
                 if '@' in current_url:
                     coords = current_url.split('@')[1].split(',')
                     if len(coords) >= 2:
                         business_info['latitude'] = coords[0]
                         business_info['longitude'] = coords[1]
-            except:
-                pass
+                        logger.debug(f"Extracted coordinates from @: lat={coords[0]}, lng={coords[1]}")
+                
+                # Method 2: Extract from !3d and !4d parameters (e.g., !3d40.7128!4d-74.0060)
+                if business_info['latitude'] == 'Not given' and '!3d' in current_url and '!4d' in current_url:
+                    try:
+                        lat_part = current_url.split('!3d')[1].split('!')[0]
+                        lng_part = current_url.split('!4d')[1].split('!')[0]
+                        business_info['latitude'] = lat_part
+                        business_info['longitude'] = lng_part
+                        logger.debug(f"Extracted coordinates from !3d/!4d: lat={lat_part}, lng={lng_part}")
+                    except:
+                        pass
+                
+                # Method 3: Extract from data attributes or meta tags
+                if business_info['latitude'] == 'Not given':
+                    try:
+                        # Try to find coordinates in page metadata
+                        lat_elem = await page.locator('[data-latitude]').first.get_attribute('data-latitude', timeout=1000)
+                        lng_elem = await page.locator('[data-longitude]').first.get_attribute('data-longitude', timeout=1000)
+                        if lat_elem and lng_elem:
+                            business_info['latitude'] = lat_elem
+                            business_info['longitude'] = lng_elem
+                            logger.debug(f"Extracted coordinates from data attributes: lat={lat_elem}, lng={lng_elem}")
+                    except:
+                        pass
+                
+                if business_info['latitude'] == 'Not given':
+                    logger.warning(f"Could not extract coordinates from URL: {current_url}")
+                    
+            except Exception as e:
+                logger.error(f"Error extracting coordinates: {e}")
             
             # Extract business name
             try:
@@ -401,12 +433,12 @@ class DataExtractor:
             try:
                 logger.info(f"Visiting homepage: {website_url}")
                 try:
-                    await page.goto(website_url, timeout=10000, wait_until='networkidle')
+                    await page.goto(website_url, timeout=5000, wait_until='networkidle')  # Reduced from 10s
                 except:
                     # If networkidle times out, try with domcontentloaded
-                    await page.goto(website_url, timeout=10000, wait_until='domcontentloaded')
+                    await page.goto(website_url, timeout=5000, wait_until='domcontentloaded')  # Reduced from 10s
                 
-                await page.wait_for_timeout(2000)  # Wait for JavaScript to render
+                await page.wait_for_timeout(1000)  # Reduced from 2s - Wait for JavaScript to render
                 logger.info("Page loaded, extracting visible text...")
                 
                 # Get VISIBLE rendered text (not raw HTML)
@@ -450,11 +482,11 @@ class DataExtractor:
                     contact_url = website_url.rstrip('/') + '/contact'
                     logger.info(f"Trying contact page: {contact_url}")
                     try:
-                        await page.goto(contact_url, timeout=10000, wait_until='networkidle')
+                        await page.goto(contact_url, timeout=5000, wait_until='networkidle')  # Reduced from 10s
                     except:
-                        await page.goto(contact_url, timeout=10000, wait_until='domcontentloaded')
+                        await page.goto(contact_url, timeout=5000, wait_until='domcontentloaded')  # Reduced from 10s
                     
-                    await page.wait_for_timeout(2000)  # Wait for JavaScript to render
+                    await page.wait_for_timeout(1000)  # Reduced from 2s - Wait for JavaScript to render
                     logger.info("Contact page loaded, extracting visible text...")
                     
                     # Get VISIBLE rendered text (not raw HTML)

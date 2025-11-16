@@ -5,6 +5,7 @@ A powerful web application for scraping business data from Google Maps without u
 ## Features
 
 - 🌐 **Web Interface** - Easy-to-use browser-based interface
+- 🗺️ **Live Interactive Map** - Real-time visualization with MapLibre GL JS (WebGL-powered)
 - 📁 **Flexible Input** - Upload CSV/Excel files or enter queries manually
 - 🔄 **Smart Proxy Rotation** - Automatic rotation after 14 requests or on failure
 - 👁️ **Visible Browser** - Watch the scraping process in real-time
@@ -12,14 +13,23 @@ A powerful web application for scraping business data from Google Maps without u
 - 💾 **Multiple Export Formats** - Download results as CSV or JSON
 - 🛡️ **Error Handling** - Automatic retry with CAPTCHA detection
 - 🔧 **Modular Design** - Easy to maintain and extend
+- ⚡ **Optimized Performance** - 2x faster scraping with reduced timeouts
 
 ## Architecture
 
 The application consists of three layers:
 
-1. **Frontend** (HTML/CSS/JS) - User interface with file upload and manual entry
+1. **Frontend** (HTML/CSS/JS + MapLibre GL JS) - Modern UI with live map visualization
 2. **Backend** (Flask) - API server with state management and coordination
 3. **Scraper** (Playwright) - Browser automation with proxy rotation
+
+### Technology Stack
+
+- **Frontend**: HTML5, CSS3, Vanilla JavaScript, MapLibre GL JS 3.6.2
+- **Backend**: Python 3.9+, Flask 2.x
+- **Browser Automation**: Playwright (Chromium)
+- **Data Processing**: pandas, openpyxl
+- **Mapping**: MapLibre GL JS (WebGL-powered, hardware-accelerated)
 
 ## Installation
 
