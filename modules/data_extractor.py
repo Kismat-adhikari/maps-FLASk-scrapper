@@ -385,6 +385,90 @@ class DataExtractor:
         return None
     
     @staticmethod
+    async def extract_email_from_website(page, website_url: str) -> Optional[str]:
+        """
+        Fast email extraction from business website.
+        Only checks homepage and /contact page with short timeout.
+        
+        Args:
+            page: Playwright page object
+            website_url: URL of the business website
+            
+        Returns:
+            Email address or None
+        """
+        logger = logging.getLogger(__name__)
+        
+        # Skip if no website
+        if not website_url or website_url == 'Not given':
+            return None
+        
+        # Email regex pattern
+        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        
+        # Common non-business email domains to filter out
+        excluded_domains = [
+            'example.com', 'domain.com', 'email.com', 'test.com',
+            'wix.com', 'wordpress.com', 'sentry.io', 'google.com',
+            'facebook.com', 'twitter.com', 'instagram.com'
+        ]
+        
+        try:
+            # Try homepage first (with short timeout)
+            new_page = await page.context.new_page()
+            
+            try:
+                # Visit homepage with 3 second timeout
+                await new_page.goto(website_url, timeout=3000, wait_until='domcontentloaded')
+                await new_page.wait_for_timeout(500)  # Brief wait for content
+                
+                # Get page content
+                content = await new_page.content()
+                
+                # Find all emails
+                emails = re.findall(email_pattern, content, re.IGNORECASE)
+                
+                # Filter and return first valid email
+                for email in emails:
+                    email_lower = email.lower()
+                    if not any(domain in email_lower for domain in excluded_domains):
+                        logger.info(f"✓ Found email on homepage: {email}")
+                        await new_page.close()
+                        return email
+                
+                # Try /contact page if homepage didn't have email
+                try:
+                    contact_url = website_url.rstrip('/') + '/contact'
+                    await new_page.goto(contact_url, timeout=3000, wait_until='domcontentloaded')
+                    await new_page.wait_for_timeout(500)
+                    
+                    content = await new_page.content()
+                    emails = re.findall(email_pattern, content, re.IGNORECASE)
+                    
+                    for email in emails:
+                        email_lower = email.lower()
+                        if not any(domain in email_lower for domain in excluded_domains):
+                            logger.info(f"✓ Found email on /contact: {email}")
+                            await new_page.close()
+                            return email
+                except:
+                    pass  # /contact page doesn't exist or timed out
+                
+                await new_page.close()
+                
+            except Exception as e:
+                logger.debug(f"Could not extract email from {website_url}: {e}")
+                try:
+                    await new_page.close()
+                except:
+                    pass
+                
+        except Exception as e:
+            logger.debug(f"Error in email extraction: {e}")
+        
+        return None
+    
+    @staticmethod
     def extract_review_count(text: str) -> Optional[int]:
         """
         Extract review count from text.
