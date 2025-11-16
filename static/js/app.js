@@ -130,20 +130,18 @@ async function updateStatus() {
         
         // Update results table with new businesses
         if (data.results && data.results.length > 0) {
+            // Show results section first
+            resultsSection.style.display = 'block';
+            document.getElementById('totalResults').textContent = `${data.results.length} businesses found`;
+            
             data.results.forEach(business => {
                 const businessId = business.name + business.phone;
                 if (!scrapedBusinesses.has(businessId)) {
                     scrapedBusinesses.add(businessId);
                     addBusinessToTable(business);
-                    addLogEntry(`✓ Scraped: ${business.name} — Rating: ${business.rating} — Phone: ${business.phone}`, 'success');
+                    addLogEntry(`Scraped: ${business.name} - Rating: ${business.rating} - Phone: ${business.phone}`, 'success');
                 }
             });
-            
-            // Show results section
-            if (data.results.length > 0) {
-                resultsSection.style.display = 'block';
-                document.getElementById('totalResults').textContent = `${data.results.length} businesses found`;
-            }
         }
         
         // Check if completed
@@ -163,13 +161,17 @@ function handleCompletion(data) {
     resetButton();
     
     if (data.status === 'completed') {
-        addLogEntry(`✓ Scraping completed! Total: ${data.success_count} successful, ${data.failure_count} failed`, 'success');
-        completionMessage.style.display = 'block';
+        addLogEntry(`Scraping completed! Total: ${data.success_count} successful, ${data.failure_count} failed`, 'success');
         
-        // Scroll to completion message
-        setTimeout(() => {
-            completionMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }, 500);
+        // Only show completion message if we have results
+        if (data.results && data.results.length > 0) {
+            completionMessage.style.display = 'block';
+            
+            // Scroll to completion message
+            setTimeout(() => {
+                completionMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 500);
+        }
     } else {
         addLogEntry('Scraping stopped by user', 'info');
     }
@@ -213,10 +215,17 @@ function addLogEntry(message, type = 'info') {
     entry.className = 'log-entry';
     
     let className = 'log-info';
-    if (type === 'success') className = 'log-success';
-    if (type === 'error') className = 'log-error';
+    let icon = '';
+    if (type === 'success') {
+        className = 'log-success';
+        icon = '✓ ';
+    }
+    if (type === 'error') {
+        className = 'log-error';
+        icon = '✗ ';
+    }
     
-    entry.innerHTML = `<span class="log-time">[${time}]</span> <span class="${className}">${message}</span>`;
+    entry.innerHTML = `<span class="log-time">[${time}]</span> <span class="${className}">${icon}${message}</span>`;
     
     liveLog.appendChild(entry);
     

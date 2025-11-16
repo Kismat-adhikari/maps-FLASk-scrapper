@@ -152,15 +152,7 @@ class DataExtractor:
                 website_link = await page.locator('a[data-item-id="authority"]').first.get_attribute('href', timeout=3000)
                 if website_link:
                     business_info['website'] = website_link.strip()
-                    
-                    # Try to extract email from the website
-                    try:
-                        email = await DataExtractor.extract_email_from_website(page, website_link)
-                        if email:
-                            business_info['email'] = email
-                            logger.debug(f"Extracted email: {email}")
-                    except Exception as e:
-                        logger.debug(f"Could not extract email from website: {e}")
+                    logger.info(f"Found website: {website_link}")
             except:
                 pass
             
@@ -335,140 +327,6 @@ class DataExtractor:
         return None
     
     @staticmethod
-    async def extract_email_from_website(page, website_url: str) -> Optional[str]:
-        """
-        Extract email from business website.
-        
-        Args:
-            page: Playwright page object
-            website_url: URL of the business website
-            
-        Returns:
-            Email address or None
-        """
-        logger = logging.getLogger(__name__)
-        
-        try:
-            # Open website in new tab
-            new_page = await page.context.new_page()
-            
-            try:
-                await new_page.goto(website_url, timeout=10000, wait_until='domcontentloaded')
-                await new_page.wait_for_timeout(2000)
-                
-                # Get page content
-                content = await new_page.content()
-                
-                # Look for email patterns
-                email_patterns = [
-                    r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}',
-                    r'mailto:([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})'
-                ]
-                
-                for pattern in email_patterns:
-                    matches = re.findall(pattern, content, re.IGNORECASE)
-                    if matches:
-                        # Filter out common non-business emails
-                        for email in matches:
-                            email_lower = email.lower()
-                            if not any(x in email_lower for x in ['example.com', 'domain.com', 'email.com', 'test.com', 'wix.com', 'wordpress.com']):
-                                logger.info(f"Found email: {email}")
-                                await new_page.close()
-                                return email
-                
-                await new_page.close()
-            except:
-                await new_page.close()
-        except Exception as e:
-            logger.debug(f"Error extracting email: {e}")
-        
-        return None
-    
-    @staticmethod
-    async def extract_email_from_website(page, website_url: str) -> Optional[str]:
-        """
-        Fast email extraction from business website.
-        Only checks homepage and /contact page with short timeout.
-        
-        Args:
-            page: Playwright page object
-            website_url: URL of the business website
-            
-        Returns:
-            Email address or None
-        """
-        logger = logging.getLogger(__name__)
-        
-        # Skip if no website
-        if not website_url or website_url == 'Not given':
-            return None
-        
-        # Email regex pattern
-        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-        
-        # Common non-business email domains to filter out
-        excluded_domains = [
-            'example.com', 'domain.com', 'email.com', 'test.com',
-            'wix.com', 'wordpress.com', 'sentry.io', 'google.com',
-            'facebook.com', 'twitter.com', 'instagram.com'
-        ]
-        
-        try:
-            # Try homepage first (with short timeout)
-            new_page = await page.context.new_page()
-            
-            try:
-                # Visit homepage with 3 second timeout
-                await new_page.goto(website_url, timeout=3000, wait_until='domcontentloaded')
-                await new_page.wait_for_timeout(500)  # Brief wait for content
-                
-                # Get page content
-                content = await new_page.content()
-                
-                # Find all emails
-                emails = re.findall(email_pattern, content, re.IGNORECASE)
-                
-                # Filter and return first valid email
-                for email in emails:
-                    email_lower = email.lower()
-                    if not any(domain in email_lower for domain in excluded_domains):
-                        logger.info(f"✓ Found email on homepage: {email}")
-                        await new_page.close()
-                        return email
-                
-                # Try /contact page if homepage didn't have email
-                try:
-                    contact_url = website_url.rstrip('/') + '/contact'
-                    await new_page.goto(contact_url, timeout=3000, wait_until='domcontentloaded')
-                    await new_page.wait_for_timeout(500)
-                    
-                    content = await new_page.content()
-                    emails = re.findall(email_pattern, content, re.IGNORECASE)
-                    
-                    for email in emails:
-                        email_lower = email.lower()
-                        if not any(domain in email_lower for domain in excluded_domains):
-                            logger.info(f"✓ Found email on /contact: {email}")
-                            await new_page.close()
-                            return email
-                except:
-                    pass  # /contact page doesn't exist or timed out
-                
-                await new_page.close()
-                
-            except Exception as e:
-                logger.debug(f"Could not extract email from {website_url}: {e}")
-                try:
-                    await new_page.close()
-                except:
-                    pass
-                
-        except Exception as e:
-            logger.debug(f"Error in email extraction: {e}")
-        
-        return None
-    
-    @staticmethod
     def extract_review_count(text: str) -> Optional[int]:
         """
         Extract review count from text.
@@ -503,72 +361,150 @@ class DataExtractor:
     @staticmethod
     async def extract_email_from_website(page, website_url: str) -> Optional[str]:
         """
-        Extract email from business website by visiting it.
+        Fast email extraction from business website.
+        Only checks homepage and /contact page with short timeout.
+        Uses the same browser session (reuses the existing page).
         
         Args:
-            page: Playwright page object
+            page: Playwright page object (same browser session)
             website_url: URL of the business website
             
         Returns:
-            Email address if found, None otherwise
+            Email address or None
         """
         logger = logging.getLogger(__name__)
         
+        # Skip if no website
+        if not website_url or website_url == 'Not given':
+            return None
+        
+        logger.info("No email from Maps, checking website...")
+        
+        # Email regex pattern
+        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        
+        # Common non-business email domains to filter out
+        excluded_domains = [
+            'example.com', 'domain.com', 'email.com', 'test.com',
+            'wix.com', 'wordpress.com', 'sentry.io', 'google.com',
+            'facebook.com', 'twitter.com', 'instagram.com', 'squarespace.com'
+        ]
+        
+        # Store current URL to return to it later
+        original_url = page.url
+        
         try:
-            # Open website in new tab
-            new_page = await page.context.new_page()
+            # Use the same page (don't create new one)
+            logger.info(f"Visiting website for email extraction...")
             
+            # Try homepage first
             try:
-                # Navigate to website with short timeout
-                await new_page.goto(website_url, timeout=10000, wait_until='domcontentloaded')
-                
-                # Get page content
-                content = await new_page.content()
-                
-                # Look for email patterns
-                email_patterns = [
-                    r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}',
-                    r'mailto:([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})'
-                ]
-                
-                for pattern in email_patterns:
-                    matches = re.findall(pattern, content, re.IGNORECASE)
-                    if matches:
-                        # Filter out common non-business emails
-                        for email in matches:
-                            email = email.lower()
-                            if not any(x in email for x in ['example.com', 'test.com', 'domain.com', 'email.com', 'wix.com', 'squarespace.com']):
-                                await new_page.close()
-                                return email
-                
-                # Try to find contact page
+                logger.info(f"Visiting homepage: {website_url}")
                 try:
-                    contact_link = await new_page.locator('a[href*="contact"]').first.get_attribute('href', timeout=2000)
-                    if contact_link:
-                        if not contact_link.startswith('http'):
-                            from urllib.parse import urljoin
-                            contact_link = urljoin(website_url, contact_link)
-                        
-                        await new_page.goto(contact_link, timeout=10000, wait_until='domcontentloaded')
-                        content = await new_page.content()
-                        
-                        for pattern in email_patterns:
-                            matches = re.findall(pattern, content, re.IGNORECASE)
-                            if matches:
-                                for email in matches:
-                                    email = email.lower()
-                                    if not any(x in email for x in ['example.com', 'test.com', 'domain.com']):
-                                        await new_page.close()
-                                        return email
+                    await page.goto(website_url, timeout=10000, wait_until='networkidle')
                 except:
-                    pass
+                    # If networkidle times out, try with domcontentloaded
+                    await page.goto(website_url, timeout=10000, wait_until='domcontentloaded')
                 
-            finally:
-                await new_page.close()
+                await page.wait_for_timeout(2000)  # Wait for JavaScript to render
+                logger.info("Page loaded, extracting visible text...")
+                
+                # Get VISIBLE rendered text (not raw HTML)
+                try:
+                    visible_text = await page.evaluate('() => document.body.innerText')
+                    logger.info(f"Visible text extracted: {len(visible_text)} chars")
+                except Exception as e:
+                    logger.error(f"Error extracting visible text: {e}")
+                    visible_text = ""
+                
+                # Also get HTML content for mailto links
+                html_content = await page.content()
+                logger.info(f"HTML content extracted: {len(html_content)} chars")
+                
+                # Combine both sources
+                combined_content = visible_text + " " + html_content
+                
+                # Find all emails
+                emails = re.findall(email_pattern, combined_content, re.IGNORECASE)
+                logger.info(f"Found {len(emails)} potential emails on homepage: {emails[:3]}")
+                
+                # Filter and return first valid email
+                for email in emails:
+                    email_lower = email.lower()
+                    # Exclude image files and other non-email patterns
+                    if email_lower.endswith(('.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico')):
+                        continue
+                    if not any(domain in email_lower for domain in excluded_domains):
+                        logger.info(f"Found valid email on homepage: {email}")
+                        # Return to original page
+                        try:
+                            await page.goto(original_url, timeout=5000)
+                        except:
+                            pass
+                        return email
+                
+                logger.info("No valid emails on homepage, trying /contact page...")
+                
+                # Try /contact page if homepage didn't have email
+                try:
+                    contact_url = website_url.rstrip('/') + '/contact'
+                    logger.info(f"Trying contact page: {contact_url}")
+                    try:
+                        await page.goto(contact_url, timeout=10000, wait_until='networkidle')
+                    except:
+                        await page.goto(contact_url, timeout=10000, wait_until='domcontentloaded')
+                    
+                    await page.wait_for_timeout(2000)  # Wait for JavaScript to render
+                    logger.info("Contact page loaded, extracting visible text...")
+                    
+                    # Get VISIBLE rendered text (not raw HTML)
+                    try:
+                        visible_text = await page.evaluate('() => document.body.innerText')
+                        logger.info(f"Visible text extracted: {len(visible_text)} chars")
+                    except Exception as e:
+                        logger.error(f"Error extracting visible text: {e}")
+                        visible_text = ""
+                    
+                    # Also get HTML content for mailto links
+                    html_content = await page.content()
+                    logger.info(f"HTML content extracted: {len(html_content)} chars")
+                    
+                    # Combine both sources
+                    combined_content = visible_text + " " + html_content
+                    
+                    emails = re.findall(email_pattern, combined_content, re.IGNORECASE)
+                    logger.info(f"Found {len(emails)} potential emails on /contact: {emails[:3]}")
+                    
+                    for email in emails:
+                        email_lower = email.lower()
+                        # Exclude image files and other non-email patterns
+                        if email_lower.endswith(('.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico')):
+                            continue
+                        if not any(domain in email_lower for domain in excluded_domains):
+                            logger.info(f"Found valid email on /contact: {email}")
+                            # Return to original page
+                            try:
+                                await page.goto(original_url, timeout=5000)
+                            except:
+                                pass
+                            return email
+                except Exception as e:
+                    logger.info(f"Could not access /contact page: {e}")
+                
+            except Exception as e:
+                logger.debug(f"Could not extract email from {website_url}: {e}")
                 
         except Exception as e:
-            logger.debug(f"Error extracting email from website: {e}")
+            logger.error(f"Error in email extraction: {e}", exc_info=True)
+        finally:
+            # Return to original page
+            try:
+                logger.info(f"Returning to original page...")
+                await page.goto(original_url, timeout=5000)
+            except Exception as e:
+                logger.error(f"Error returning to original page: {e}")
         
+        logger.info("No email found on website")
         return None
     
     @staticmethod

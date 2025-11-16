@@ -234,8 +234,17 @@ class GoogleMapsScraper:
                     business_info = await DataExtractor.extract_detailed_business_info(self.page)
                     
                     if business_info.get('name'):
+                        # Try to extract email from website if not found on Maps
+                        if business_info.get('email') == 'Not given' and business_info.get('website') != 'Not given':
+                            try:
+                                email = await DataExtractor.extract_email_from_website(self.page, business_info['website'])
+                                if email:
+                                    business_info['email'] = email
+                            except Exception as e:
+                                self.logger.debug(f"Could not extract email from website: {e}")
+                        
                         businesses.append(business_info)
-                        self.logger.info(f"✓ Extracted: {business_info.get('name')}")
+                        self.logger.info(f"Extracted: {business_info.get('name')}")
                         
                         # Save incrementally if callback provided
                         if csv_callback:

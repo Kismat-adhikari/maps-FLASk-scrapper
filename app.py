@@ -104,14 +104,19 @@ async def scrape_queries_async(queries):
     """
     global app_state, scraper, proxy_manager
     
-    app_state['status'] = 'running'
-    app_state['total_queries'] = len(queries)
-    app_state['processed'] = 0
-    app_state['success_count'] = 0
-    app_state['failure_count'] = 0
-    app_state['results'] = []
-    
-    logger.info(f"Starting scraping for {len(queries)} queries")
+    try:
+        app_state['status'] = 'running'
+        app_state['total_queries'] = len(queries)
+        app_state['processed'] = 0
+        app_state['success_count'] = 0
+        app_state['failure_count'] = 0
+        app_state['results'] = []
+        
+        logger.info(f"Starting scraping for {len(queries)} queries")
+    except Exception as e:
+        logger.error(f"Error initializing scrape: {e}", exc_info=True)
+        app_state['status'] = 'completed'
+        return
     
     # Setup incremental CSV saving
     location = queries[0].get('zip_code', 'results') if queries else 'results'
@@ -209,10 +214,17 @@ def run_scraping_thread(queries):
     Args:
         queries: List of query dictionaries
     """
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(scrape_queries_async(queries))
-    loop.close()
+    try:
+        logger.info("Scraping thread started")
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(scrape_queries_async(queries))
+        loop.close()
+        logger.info("Scraping thread completed")
+    except Exception as e:
+        logger.error(f"Error in scraping thread: {e}", exc_info=True)
+        app_state['status'] = 'completed'
+        app_state['failure_count'] += 1
 
 
 @app.route('/')
@@ -301,9 +313,11 @@ def start_scraping():
         reset_state()
         
         # Start scraping in background thread
+        logger.info(f"Creating scraping thread for {len(queries)} queries")
         thread = Thread(target=run_scraping_thread, args=(queries,))
         thread.daemon = True
         thread.start()
+        logger.info("Scraping thread started successfully")
         
         return jsonify({
             'message': 'Scraping started',
@@ -311,7 +325,7 @@ def start_scraping():
         }), 200
         
     except Exception as e:
-        logger.error(f"Error in start: {e}")
+        logger.error(f"Error in start: {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 
