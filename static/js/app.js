@@ -151,8 +151,9 @@ async function updateStatus() {
             resultsSection.style.display = 'block';
             document.getElementById('totalResults').textContent = `${data.results.length} businesses found`;
             
-            data.results.forEach(business => {
-                const businessId = business.name + business.phone;
+            data.results.forEach((business, index) => {
+                // Use index as unique ID to show all results (including duplicates from Google Maps)
+                const businessId = index;
                 if (!scrapedBusinesses.has(businessId)) {
                     scrapedBusinesses.add(businessId);
                     addBusinessToTable(business);

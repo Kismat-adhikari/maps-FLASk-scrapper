@@ -206,29 +206,33 @@ class GoogleMapsScraper:
             
             self.logger.info(f"Found {len(result_links)} business results")
             
-            # Limit to 40 results
-            max_results = 40
+            # Limit to 60 results
+            max_results = 60
             result_links = result_links[:max_results]
+            
+            # Extract URLs first to avoid stale references
+            business_urls = []
+            for link in result_links:
+                try:
+                    href = await link.get_attribute('href')
+                    if href and href.startswith('http'):
+                        business_urls.append(href)
+                except:
+                    continue
+            
+            self.logger.info(f"Collected {len(business_urls)} business URLs to scrape")
             
             # Store the results page URL to return to
             results_url = self.page.url
             
-            # Extract data from each business
-            for idx, link in enumerate(result_links, start=1):
+            # Extract data from each business URL
+            for idx, business_url in enumerate(business_urls, start=1):
                 try:
-                    self.logger.info(f"Extracting business {idx}/{len(result_links)}...")
+                    self.logger.info(f"Extracting business {idx}/{len(business_urls)}...")
                     
-                    # Get the href before clicking
-                    business_url = await link.get_attribute('href')
-                    
-                    # Navigate to business page (avoid about:blank)
-                    if business_url and business_url.startswith('http'):
-                        await self.page.goto(business_url, timeout=self.page_load_timeout, wait_until='domcontentloaded')
-                        await asyncio.sleep(2)  # Wait for details to load
-                    else:
-                        # Fallback to clicking
-                        await link.click()
-                        await asyncio.sleep(2)
+                    # Navigate to business page
+                    await self.page.goto(business_url, timeout=self.page_load_timeout, wait_until='domcontentloaded')
+                    await asyncio.sleep(2)  # Wait for details to load
                     
                     # Extract comprehensive business info
                     business_info = await DataExtractor.extract_detailed_business_info(self.page)
@@ -253,35 +257,19 @@ class GoogleMapsScraper:
                             except Exception as e:
                                 self.logger.warning(f"Error in CSV callback: {e}")
                     
-                    # Navigate back to results page (avoid about:blank)
-                    if results_url and results_url.startswith('http'):
-                        await self.page.goto(results_url, timeout=self.page_load_timeout, wait_until='domcontentloaded')
-                        await asyncio.sleep(1)
-                    
-                    # Re-find the links after navigation
-                    result_links = await self.page.locator('a[href*="/maps/place/"]').all()
-                    result_links = result_links[:max_results]
+                    # Navigate back to results page
+                    await self.page.goto(results_url, timeout=self.page_load_timeout, wait_until='domcontentloaded')
+                    await asyncio.sleep(1)
                     
                 except Exception as e:
                     self.logger.warning(f"Error extracting business {idx}: {e}")
                     # Try to go back to results page
                     try:
-                        if results_url and results_url.startswith('http'):
-                            await self.page.goto(results_url, timeout=self.page_load_timeout, wait_until='domcontentloaded')
-                            await asyncio.sleep(1)
-                        # Re-find the links
-                        result_links = await self.page.locator('a[href*="/maps/place/"]').all()
-                        result_links = result_links[:max_results]
+                        await self.page.goto(results_url, timeout=self.page_load_timeout, wait_until='domcontentloaded')
+                        await asyncio.sleep(1)
                     except:
                         pass
                     continue
-            
-            # Stay on results page at the end (don't navigate to about:blank)
-            try:
-                if results_url and results_url.startswith('http'):
-                    await self.page.goto(results_url, timeout=self.page_load_timeout, wait_until='domcontentloaded')
-            except:
-                pass
             
             self.logger.info(f"Successfully extracted {len(businesses)} businesses")
             
