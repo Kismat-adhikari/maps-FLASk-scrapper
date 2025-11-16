@@ -331,6 +331,11 @@ class GoogleMapsScraper:
         """
         keyword = query.get('keyword', '')
         zip_code = query.get('zip_code', '')
+        url = query.get('url', '')
+        
+        # Check if URL mode
+        if url:
+            return await self.scrape_url(url, csv_callback, retry_count, max_retries)
         
         if not keyword or not zip_code:
             self.logger.error("Missing keyword or zip_code in query")
@@ -399,6 +404,117 @@ class GoogleMapsScraper:
             if retry_count < max_retries:
                 self.logger.info(f"Retrying after error...")
                 return await self.scrape_query(query, csv_callback, retry_count + 1, max_retries)
+            
+            return []
+    
+    async def scrape_url(self, url: str, csv_callback=None, retry_count: int = 0, max_retries: int = 3) -> List[Dict]:
+        """
+        Scrape from a Google Maps URL (search URL or business URL).
+        
+        Args:
+            url: Google Maps URL
+            csv_callback: Optional callback to save each business incrementally
+            retry_count: Current retry attempt
+            max_retries: Maximum number of retries
+            
+        Returns:
+            List of business dictionaries
+        """
+        self.logger.info(f"Starting scrape from URL: {url} (attempt {retry_count + 1}/{max_retries + 1})")
+        
+        # Get current proxy
+        proxy = self.proxy_manager.get_next_proxy()
+        if not proxy:
+            self.logger.error("No proxy available")
+            return []
+        
+        try:
+            # Initialize browser with proxy
+            success = await self.initialize_browser(proxy)
+            if not success:
+                self.logger.error("Failed to initialize browser")
+                self.proxy_manager.mark_failure(proxy)
+                
+                if retry_count < max_retries:
+                    self.logger.info(f"Retrying with next proxy...")
+                    return await self.scrape_url(url, csv_callback, retry_count + 1, max_retries)
+                return []
+            
+            # Increment request counter
+            self.proxy_manager.increment_counter()
+            
+            # Navigate to URL
+            try:
+                await self.page.goto(url, timeout=self.page_load_timeout)
+                await asyncio.sleep(3)
+            except Exception as e:
+                self.logger.error(f"Failed to load URL: {e}")
+                self.proxy_manager.mark_failure(proxy)
+                
+                if retry_count < max_retries:
+                    self.logger.info(f"Retrying with next proxy...")
+                    await self.close_browser()
+                    return await self.scrape_url(url, csv_callback, retry_count + 1, max_retries)
+                return []
+            
+            # Check for CAPTCHA
+            if await self._detect_captcha():
+                self.logger.warning("CAPTCHA detected - marking proxy as failed")
+                self.proxy_manager.mark_failure(proxy)
+                
+                if retry_count < max_retries:
+                    self.logger.info(f"Retrying with next proxy...")
+                    await self.close_browser()
+                    return await self.scrape_url(url, csv_callback, retry_count + 1, max_retries)
+                return []
+            
+            # Determine if it's a search URL or business URL
+            if '/maps/place/' in url:
+                # Single business URL
+                self.logger.info("Detected business URL - extracting single business")
+                business_info = await DataExtractor.extract_detailed_business_info(self.page)
+                
+                if business_info.get('name'):
+                    # Try to extract email from website
+                    if business_info.get('email') == 'Not given' and business_info.get('website') != 'Not given':
+                        try:
+                            email = await DataExtractor.extract_email_from_website(self.page, business_info['website'])
+                            if email:
+                                business_info['email'] = email
+                        except Exception as e:
+                            self.logger.debug(f"Could not extract email from website: {e}")
+                    
+                    # Save incrementally if callback provided
+                    if csv_callback:
+                        try:
+                            csv_callback(business_info)
+                        except Exception as e:
+                            self.logger.warning(f"Error in CSV callback: {e}")
+                    
+                    self.logger.info(f"Scrape completed: 1 business found")
+                    return [business_info]
+                else:
+                    self.logger.warning("Could not extract business information")
+                    return []
+            else:
+                # Search URL - extract multiple businesses
+                self.logger.info("Detected search URL - extracting multiple businesses")
+                businesses = await self.extract_business_data(csv_callback)
+                self.logger.info(f"Scrape completed: {len(businesses)} businesses found")
+                return businesses
+            
+        except Exception as e:
+            self.logger.error(f"Unexpected error during URL scrape: {e}")
+            self.proxy_manager.mark_failure(proxy)
+            
+            try:
+                await self.close_browser()
+            except:
+                pass
+            
+            if retry_count < max_retries:
+                self.logger.info(f"Retrying after error...")
+                return await self.scrape_url(url, csv_callback, retry_count + 1, max_retries)
             
             return []
     

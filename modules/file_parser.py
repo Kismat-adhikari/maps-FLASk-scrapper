@@ -104,6 +104,10 @@ class FileParser:
     def validate_data(data: List[Dict]) -> Tuple[bool, str]:
         """
         Validate parsed data to ensure required fields are present and valid.
+        Supports three modes:
+        1. keyword + zip_code (traditional)
+        2. url only (URL-based scraping)
+        3. Mix of both
         
         Args:
             data: List of dictionaries with query data
@@ -118,17 +122,29 @@ class FileParser:
         
         # Check each row for required fields
         for idx, row in enumerate(data, start=1):
-            # Check keyword
             keyword = row.get('keyword', '').strip()
-            if not keyword or keyword == 'nan':
-                return False, f"Row {idx}: Missing or empty 'keyword' field"
-            
-            # Check zip_code
             zip_code = row.get('zip_code', '').strip()
-            if not zip_code or zip_code == 'nan':
-                return False, f"Row {idx}: Missing or empty 'zip_code' field"
+            url = row.get('url', '').strip()
             
-            # URL is optional, so we don't validate it
+            # Clean up 'nan' strings
+            if keyword == 'nan':
+                keyword = ''
+            if zip_code == 'nan':
+                zip_code = ''
+            if url == 'nan':
+                url = ''
+            
+            # Row must have either (keyword + zip_code) OR url
+            has_keyword_data = keyword and zip_code
+            has_url_data = url and 'google.com/maps' in url
+            
+            if not has_keyword_data and not has_url_data:
+                return False, f"Row {idx}: Must have either (keyword + zip_code) OR a valid Google Maps URL"
+            
+            # Update the row with cleaned values
+            row['keyword'] = keyword
+            row['zip_code'] = zip_code
+            row['url'] = url
         
         logger.info(f"Validation passed for {len(data)} rows")
         return True, "Validation successful"

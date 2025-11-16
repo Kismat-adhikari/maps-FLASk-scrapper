@@ -233,6 +233,33 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/download-template')
+def download_template():
+    """Download a sample CSV template."""
+    import io
+    from flask import send_file
+    
+    # Create sample CSV content
+    csv_content = """keyword,zip_code,url
+restaurants,10001,
+coffee shops,90210,
+plumbers,33101,
+,,https://www.google.com/maps/search/dentists+miami
+,,https://www.google.com/maps/place/Business+Name/@40.7308,-73.9973,17z"""
+    
+    # Create a BytesIO object
+    buffer = io.BytesIO()
+    buffer.write(csv_content.encode('utf-8'))
+    buffer.seek(0)
+    
+    return send_file(
+        buffer,
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name='google_maps_scraper_template.csv'
+    )
+
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     """
@@ -289,31 +316,78 @@ def upload_file():
 @app.route('/start', methods=['POST'])
 def start_scraping():
     """
-    Start scraping with manually entered queries.
-    Expects JSON with 'queries' array.
+    Start scraping with manually entered queries or URLs.
+    Supports three modes:
+    - keyword: keyword + location search
+    - search_url: Google Maps search URL
+    - business_urls: Multiple business URLs
     """
     try:
         data = request.get_json()
         
-        if not data or 'queries' not in data:
-            return jsonify({'error': 'No queries provided'}), 400
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
         
-        queries = data['queries']
+        mode = data.get('mode', 'keyword')
+        queries = []
         
-        if not queries:
-            return jsonify({'error': 'Query list is empty'}), 400
-        
-        # Validate queries
-        is_valid, error = FileParser.validate_data(queries)
-        
-        if not is_valid:
-            return jsonify({'error': error}), 400
+        if mode == 'keyword':
+            # Traditional keyword + location mode
+            keyword = data.get('keyword', '').strip()
+            location = data.get('location', '').strip()
+            
+            if not keyword or not location:
+                return jsonify({'error': 'Keyword and location are required'}), 400
+            
+            queries = [{
+                'keyword': keyword,
+                'zip_code': location,
+                'url': ''
+            }]
+            
+        elif mode == 'search_url':
+            # Google Maps search URL mode
+            url = data.get('url', '').strip()
+            
+            if not url:
+                return jsonify({'error': 'Search URL is required'}), 400
+            
+            if 'google.com/maps' not in url:
+                return jsonify({'error': 'Invalid Google Maps URL'}), 400
+            
+            queries = [{
+                'keyword': '',
+                'zip_code': '',
+                'url': url
+            }]
+            
+        elif mode == 'business_urls':
+            # Multiple business URLs mode
+            urls = data.get('urls', [])
+            
+            if not urls or len(urls) == 0:
+                return jsonify({'error': 'At least one business URL is required'}), 400
+            
+            # Validate URLs
+            for url in urls:
+                if 'google.com/maps' not in url:
+                    return jsonify({'error': f'Invalid Google Maps URL: {url}'}), 400
+            
+            # Create a query for each URL
+            queries = [{
+                'keyword': '',
+                'zip_code': '',
+                'url': url
+            } for url in urls]
+            
+        else:
+            return jsonify({'error': 'Invalid mode'}), 400
         
         # Reset state
         reset_state()
         
         # Start scraping in background thread
-        logger.info(f"Creating scraping thread for {len(queries)} queries")
+        logger.info(f"Creating scraping thread for {len(queries)} queries (mode: {mode})")
         thread = Thread(target=run_scraping_thread, args=(queries,))
         thread.daemon = True
         thread.start()

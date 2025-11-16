@@ -11,6 +11,10 @@ const btnText = document.querySelector('.btn-text');
 const btnLoader = document.querySelector('.btn-loader');
 const keywordInput = document.getElementById('keyword');
 const locationInput = document.getElementById('location');
+const searchUrlInput = document.getElementById('searchUrl');
+const businessUrlsInput = document.getElementById('businessUrls');
+const fileUploadInput = document.getElementById('fileUpload');
+const fileUploadText = document.getElementById('fileUploadText');
 const statusSection = document.getElementById('statusSection');
 const resultsSection = document.getElementById('resultsSection');
 const completionMessage = document.getElementById('completionMessage');
@@ -18,23 +22,118 @@ const liveLog = document.getElementById('liveLog');
 const clearLogBtn = document.getElementById('clearLogBtn');
 const downloadBtn = document.getElementById('downloadBtn');
 
+// Tab switching
+let activeTab = 'keyword';
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     startBtn.addEventListener('click', handleStartScraping);
     clearLogBtn.addEventListener('click', clearLog);
     downloadBtn.addEventListener('click', () => downloadResults('csv'));
     
-    addLogEntry('System ready. Enter keyword and location to start scraping.', 'info');
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
+    
+    // File upload handling
+    fileUploadInput.addEventListener('change', handleFileSelect);
+    
+    addLogEntry('System ready. Choose your input method and start scraping.', 'info');
 });
+
+// Handle file selection
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (file) {
+        fileUploadText.textContent = file.name;
+        addLogEntry(`File selected: ${file.name}`, 'info');
+    } else {
+        fileUploadText.textContent = 'Choose file or drag here';
+    }
+}
+
+// Switch between tabs
+function switchTab(tab) {
+    activeTab = tab;
+    
+    // Update tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
+    
+    // Update tab content
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    document.getElementById(tab + 'Tab').classList.add('active');
+}
 
 // Start Scraping
 async function handleStartScraping() {
-    const keyword = keywordInput.value.trim();
-    const location = locationInput.value.trim();
+    let requestData = {};
+    let isFileUpload = false;
     
-    if (!keyword || !location) {
-        addLogEntry('Error: Please enter both keyword and location', 'error');
-        return;
+    // Validate based on active tab
+    if (activeTab === 'keyword') {
+        const keyword = keywordInput.value.trim();
+        const location = locationInput.value.trim();
+        
+        if (!keyword || !location) {
+            addLogEntry('Error: Please enter both keyword and location', 'error');
+            return;
+        }
+        
+        requestData = {
+            mode: 'keyword',
+            keyword: keyword,
+            location: location
+        };
+    } else if (activeTab === 'file') {
+        const file = fileUploadInput.files[0];
+        
+        if (!file) {
+            addLogEntry('Error: Please select a file to upload', 'error');
+            return;
+        }
+        
+        isFileUpload = true;
+        
+    } else if (activeTab === 'url') {
+        const searchUrl = searchUrlInput.value.trim();
+        const businessUrls = businessUrlsInput.value.trim();
+        
+        if (!searchUrl && !businessUrls) {
+            addLogEntry('Error: Please enter either a search URL or business URLs', 'error');
+            return;
+        }
+        
+        if (searchUrl && businessUrls) {
+            addLogEntry('Error: Please use either search URL OR business URLs, not both', 'error');
+            return;
+        }
+        
+        if (searchUrl) {
+            requestData = {
+                mode: 'search_url',
+                url: searchUrl
+            };
+        } else {
+            // Parse business URLs (one per line)
+            const urls = businessUrls.split('\n')
+                .map(url => url.trim())
+                .filter(url => url.length > 0);
+            
+            if (urls.length === 0) {
+                addLogEntry('Error: No valid URLs found', 'error');
+                return;
+            }
+            
+            requestData = {
+                mode: 'business_urls',
+                urls: urls
+            };
+        }
     }
     
     // Disable button and show loader
@@ -51,22 +150,39 @@ async function handleStartScraping() {
     document.getElementById('resultsBody').innerHTML = '';
     completionMessage.style.display = 'none';
     
-    addLogEntry(`Starting scrape: "${keyword}" in "${location}"`, 'info');
+    // Log based on mode
+    if (isFileUpload) {
+        addLogEntry(`Uploading file...`, 'info');
+    } else if (requestData.mode === 'keyword') {
+        addLogEntry(`Starting scrape: "${requestData.keyword}" in "${requestData.location}"`, 'info');
+    } else if (requestData.mode === 'search_url') {
+        addLogEntry(`Starting scrape from search URL`, 'info');
+    } else if (requestData.mode === 'business_urls') {
+        addLogEntry(`Starting scrape for ${requestData.urls.length} business URLs`, 'info');
+    }
     
     try {
-        const response = await fetch('/start', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                queries: [{
-                    keyword: keyword,
-                    zip_code: location,
-                    url: ''
-                }]
-            })
-        });
+        let response;
+        
+        if (isFileUpload) {
+            // File upload uses FormData
+            const formData = new FormData();
+            formData.append('file', fileUploadInput.files[0]);
+            
+            response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+        } else {
+            // Regular JSON request
+            response = await fetch('/start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            });
+        }
         
         const data = await response.json();
         

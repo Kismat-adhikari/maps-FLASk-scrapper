@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Google Maps Scraper</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=2">
 </head>
 <body>
     <div class="container">
@@ -20,14 +20,66 @@
             <div class="input-section">
                 <h2>Search Configuration</h2>
                 
-                <div class="input-group">
-                    <label for="keyword">Keyword</label>
-                    <input type="text" id="keyword" placeholder="e.g., restaurants, cafes, plumbers" />
+                <!-- Tab Navigation -->
+                <div class="tab-navigation">
+                    <button class="tab-btn active" data-tab="keyword">Keyword Search</button>
+                    <button class="tab-btn" data-tab="url">URL Input</button>
+                    <button class="tab-btn" data-tab="file">File Upload</button>
                 </div>
 
-                <div class="input-group">
-                    <label for="location">Location</label>
-                    <input type="text" id="location" placeholder="e.g., New York, Miami, 10001" />
+                <!-- Keyword Tab -->
+                <div id="keywordTab" class="tab-content active">
+                    <div class="input-group">
+                        <label for="keyword">Keyword</label>
+                        <input type="text" id="keyword" placeholder="e.g., restaurants, cafes, plumbers" />
+                    </div>
+
+                    <div class="input-group">
+                        <label for="location">Location</label>
+                        <input type="text" id="location" placeholder="e.g., New York, Miami, 10001" />
+                    </div>
+                </div>
+
+                <!-- URL Tab -->
+                <div id="urlTab" class="tab-content">
+                    <div class="input-group">
+                        <label for="searchUrl">Google Maps Search URL</label>
+                        <input type="text" id="searchUrl" placeholder="https://www.google.com/maps/search/restaurants+10001" />
+                        <small class="input-hint">Paste a Google Maps search URL to scrape all businesses from that search</small>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="businessUrls">Business URLs (Bulk)</label>
+                        <textarea id="businessUrls" rows="6" placeholder="https://www.google.com/maps/place/Business+Name/@40.7308,-73.9973,17z
+https://www.google.com/maps/place/Another+Business/@40.7308,-73.9973,17z
+(One URL per line)"></textarea>
+                        <small class="input-hint">Paste multiple Google Maps business URLs (one per line) to scrape specific businesses</small>
+                    </div>
+                </div>
+
+                <!-- File Upload Tab -->
+                <div id="fileTab" class="tab-content">
+                    <div class="input-group">
+                        <label for="fileUpload">Upload CSV or Excel File</label>
+                        <div class="file-upload-wrapper">
+                            <input type="file" id="fileUpload" accept=".csv,.xlsx,.xls" />
+                            <label for="fileUpload" class="file-upload-label">
+                                <span class="file-upload-icon">📁</span>
+                                <span id="fileUploadText">Choose file or drag here</span>
+                            </label>
+                        </div>
+                        <small class="input-hint">Upload a CSV or Excel file with columns: keyword, zip_code (or location), and optionally url</small>
+                    </div>
+
+                    <div class="file-format-info">
+                        <strong>Supported Formats:</strong>
+                        <ul>
+                            <li><strong>Option 1:</strong> keyword, zip_code (or location) - for keyword searches</li>
+                            <li><strong>Option 2:</strong> url - for URL-based scraping</li>
+                            <li><strong>Option 3:</strong> Mix both - some rows with keywords, some with URLs</li>
+                        </ul>
+                        <a href="/download-template" class="download-template-link">📥 Download Template</a>
+                    </div>
                 </div>
 
                 <button id="startBtn" class="btn-primary">
@@ -117,6 +169,6 @@
         </div>
     </div>
 
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=2"></script>
 </body>
 </html>
