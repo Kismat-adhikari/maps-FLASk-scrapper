@@ -206,8 +206,8 @@ class GoogleMapsScraper:
             
             self.logger.info(f"Found {len(result_links)} business results")
             
-            # Limit to 60 results
-            max_results = 60
+            # Limit to 100 results (increased for broader coverage)
+            max_results = 100
             result_links = result_links[:max_results]
             
             # Extract URLs first to avoid stale references
@@ -279,18 +279,163 @@ class GoogleMapsScraper:
         return businesses
     
     async def _scroll_results(self):
-        """Scroll the results panel to load more businesses."""
+        """Scroll the results panel to load more businesses - OPTIMIZED."""
         try:
             # Find the scrollable results container
             results_panel = self.page.locator('[role="feed"]').first
             
-            # Scroll down multiple times to load more results
-            for _ in range(3):
+            # Scroll down 5 times to load up to 100 results
+            for _ in range(5):
                 await results_panel.evaluate('el => el.scrollTop = el.scrollHeight')
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.7)  # Wait for results to load
                 
         except Exception as e:
             self.logger.debug(f"Could not scroll results: {e}")
+    
+    async def _scrape_single_business(self, business_url: str, index: int, total: int) -> Optional[Dict]:
+        """
+        Scrape a single business in a new tab/page - OPTIMIZED for speed and reliability.
+        
+        Args:
+            business_url: URL of the business to scrape
+            index: Current business index
+            total: Total number of businesses
+            
+        Returns:
+            Business info dictionary or None if failed
+        """
+        page = None
+        try:
+            self.logger.info(f"[Tab {index}/{total}] Opening tab...")
+            
+            # Create new page (tab) in the same browser
+            page = await self.browser.new_page(viewport={'width': 1920, 'height': 1080})
+            page.set_default_timeout(20000)  # Reduced from 30s to 20s
+            
+            # Navigate to business page - use domcontentloaded for speed
+            await page.goto(business_url, timeout=20000, wait_until='domcontentloaded')
+            
+            # Smart wait: Wait for business name OR timeout quickly
+            try:
+                await page.wait_for_selector('h1.DUwDvf, h1', timeout=3000, state='visible')
+            except:
+                # If name not found in 3s, wait a bit more for slow pages
+                await asyncio.sleep(1)
+            
+            # Extract business info
+            business_info = await DataExtractor.extract_detailed_business_info(page)
+            
+            # Validate we got actual data
+            if business_info.get('name') and business_info.get('name') != 'Not given':
+                # Extract email from website if not found on Maps
+                if business_info.get('email') == 'Not given' and business_info.get('website') != 'Not given':
+                    try:
+                        email = await DataExtractor.extract_email_from_website(page, business_info['website'])
+                        if email:
+                            business_info['email'] = email
+                            self.logger.info(f"[Tab {index}/{total}] Found email: {email}")
+                    except Exception as e:
+                        self.logger.debug(f"Could not extract email: {e}")
+                
+                self.logger.info(f"[Tab {index}/{total}] ✓ {business_info.get('name')}")
+                return business_info
+            else:
+                self.logger.warning(f"[Tab {index}/{total}] ✗ No name extracted")
+                return None
+                
+        except Exception as e:
+            self.logger.warning(f"[Tab {index}/{total}] ✗ {str(e)[:50]}")
+            return None
+        finally:
+            # Always close the tab quickly
+            if page:
+                try:
+                    await page.close()
+                except:
+                    pass
+    
+    async def extract_business_data_parallel(self, csv_callback=None, max_concurrent=5) -> List[Dict]:
+        """
+        Extract business data using parallel tabs for faster scraping.
+        
+        Args:
+            csv_callback: Optional callback function to save each business incrementally
+            max_concurrent: Maximum number of tabs to open simultaneously
+        
+        Returns:
+            List of business information dictionaries
+        """
+        if not self.page:
+            self.logger.error("Browser not initialized")
+            return []
+        
+        businesses = []
+        
+        try:
+            # Quick wait for results to load
+            await asyncio.sleep(1)
+            
+            # Scroll to load more results (optimized)
+            await self._scroll_results()
+            
+            # Find all business links
+            result_links = await self.page.locator('a[href*="/maps/place/"]').all()
+            self.logger.info(f"Found {len(result_links)} business results")
+            
+            # Limit to 100 results (increased for broader coverage)
+            max_results = 100
+            result_links = result_links[:max_results]
+            
+            # Extract URLs
+            business_urls = []
+            for link in result_links:
+                try:
+                    href = await link.get_attribute('href')
+                    if href and href.startswith('http'):
+                        business_urls.append(href)
+                except:
+                    continue
+            
+            self.logger.info(f"Collected {len(business_urls)} business URLs")
+            self.logger.info(f"🚀 PARALLEL scraping: {max_concurrent} tabs at once")
+            
+            # Process businesses in batches
+            for i in range(0, len(business_urls), max_concurrent):
+                batch = business_urls[i:i + max_concurrent]
+                batch_num = (i // max_concurrent) + 1
+                total_batches = (len(business_urls) + max_concurrent - 1) // max_concurrent
+                
+                self.logger.info(f"📦 Batch {batch_num}/{total_batches} ({len(batch)} tabs)")
+                
+                # Create tasks for parallel scraping
+                tasks = [
+                    self._scrape_single_business(url, i + idx + 1, len(business_urls))
+                    for idx, url in enumerate(batch)
+                ]
+                
+                # Run all tasks in parallel
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+                
+                # Process results immediately
+                for result in results:
+                    if isinstance(result, dict) and result.get('name'):
+                        businesses.append(result)
+                        
+                        # Call callback for real-time updates
+                        if csv_callback:
+                            try:
+                                csv_callback(result)
+                            except Exception as e:
+                                self.logger.warning(f"Error in callback: {e}")
+                
+                # No delay between batches - go straight to next batch for speed!
+            
+            self.logger.info(f"✅ Parallel scraping complete! Extracted {len(businesses)} businesses")
+            
+        except Exception as e:
+            self.logger.error(f"Error in parallel scraping: {e}")
+        
+        return businesses
     
     async def close_browser(self) -> None:
         """Close the browser and cleanup resources."""
@@ -378,8 +523,10 @@ class GoogleMapsScraper:
                     return await self.scrape_query(query, csv_callback, retry_count + 1, max_retries)
                 return []
             
-            # Extract business data with incremental saving
-            businesses = await self.extract_business_data(csv_callback)
+            # Extract business data with incremental saving (PARALLEL MODE)
+            from config import Config
+            max_concurrent = getattr(Config, 'PARALLEL_TABS', 5)
+            businesses = await self.extract_business_data_parallel(csv_callback, max_concurrent)
             
             # Add query context to each business
             for business in businesses:

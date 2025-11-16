@@ -14,6 +14,10 @@ class Config:
     PAGE_LOAD_TIMEOUT = 60
     HEADLESS = False  # Set to False to see browser
     
+    # Parallel scraping settings
+    PARALLEL_TABS = 3  # Number of tabs to open simultaneously (3-5 recommended for stability)
+    MAX_CONCURRENT_BUSINESSES = 3  # Max businesses to scrape at once
+    
     # Browser settings
     VIEWPORT_WIDTH = 1920
     VIEWPORT_HEIGHT = 1080

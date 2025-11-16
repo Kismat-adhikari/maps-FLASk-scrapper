@@ -179,14 +179,30 @@ class DataExtractor:
             except:
                 pass
             
-            # Extract website
+            # Extract website (check main view first, then menu tab)
             try:
-                website_link = await page.locator('a[data-item-id="authority"]').first.get_attribute('href', timeout=3000)
+                # Try main view first
+                website_link = await page.locator('a[data-item-id="authority"]').first.get_attribute('href', timeout=2000)
                 if website_link:
                     business_info['website'] = website_link.strip()
                     logger.info(f"Found website: {website_link}")
             except:
-                pass
+                # If not found, try clicking "Menu" tab where website might be hidden
+                try:
+                    logger.debug("Website not in main view, checking menu tab...")
+                    # Click on the menu/about tab
+                    menu_button = page.locator('button[aria-label*="Menu"], button:has-text("Menu"), button[role="tab"]:has-text("About")')
+                    await menu_button.first.click(timeout=2000)
+                    await asyncio.sleep(0.5)
+                    
+                    # Try to find website again
+                    website_link = await page.locator('a[data-item-id="authority"]').first.get_attribute('href', timeout=2000)
+                    if website_link:
+                        business_info['website'] = website_link.strip()
+                        logger.info(f"Found website in menu tab: {website_link}")
+                except Exception as e:
+                    logger.debug(f"Could not find website in menu tab: {e}")
+                    pass
             
             # Extract plus code
             try:
