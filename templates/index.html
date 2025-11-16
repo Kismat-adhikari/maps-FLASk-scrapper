@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Maps Scraper</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Google Maps Scraper</h1>
+            <p class="subtitle">Extract business data from Google Maps without API keys</p>
+        </header>
+
+        <main>
+            <!-- Input Section -->
+            <section class="input-section">
+                <h2>Input Method</h2>
+                
+                <!-- File Upload -->
+                <div class="input-method">
+                    <h3>Option 1: Upload File</h3>
+                    <div class="file-upload-container">
+                        <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" />
+                        <button id="uploadBtn" class="btn btn-primary">Upload & Start</button>
+                    </div>
+                    <p class="help-text">Upload a CSV or Excel file with columns: keyword, location, url (optional)</p>
+                </div>
+
+                <!-- Manual Entry -->
+                <div class="input-method">
+                    <h3>Option 2: Manual Entry</h3>
+                    <div class="manual-entry-container">
+                        <table id="manualEntryTable">
+                            <thead>
+                                <tr>
+                                    <th>Keyword</th>
+                                    <th>Location</th>
+                                    <th>URL (Optional)</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="manualEntryBody">
+                                <tr class="entry-row">
+                                    <td><input type="text" class="keyword-input" placeholder="e.g., restaurants" /></td>
+                                    <td><input type="text" class="zipcode-input" placeholder="e.g., New York or 10001" /></td>
+                                    <td><input type="text" class="url-input" placeholder="Optional" /></td>
+                                    <td><button class="btn-remove" onclick="removeRow(this)">Remove</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="manual-entry-actions">
+                            <button id="addRowBtn" class="btn btn-secondary">Add Row</button>
+                            <button id="startManualBtn" class="btn btn-primary">Start Scraping</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Control Section -->
+            <section class="control-section">
+                <h2>Controls</h2>
+                <div class="control-buttons">
+                    <button id="stopBtn" class="btn btn-danger" disabled>Stop Scraping</button>
+                </div>
+            </section>
+
+            <!-- Progress Section -->
+            <section class="progress-section">
+                <h2>Progress</h2>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div id="progressFill" class="progress-fill"></div>
+                    </div>
+                    <p id="progressText" class="progress-text">0%</p>
+                </div>
+            </section>
+
+            <!-- Status Section -->
+            <section class="status-section">
+                <h2>Status</h2>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <span class="status-label">Status:</span>
+                        <span id="statusValue" class="status-value">Idle</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Current Query:</span>
+                        <span id="currentQuery" class="status-value">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Current Proxy:</span>
+                        <span id="currentProxy" class="status-value">-</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Processed:</span>
+                        <span id="processedCount" class="status-value">0 / 0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Successful:</span>
+                        <span id="successCount" class="status-value success">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Failed:</span>
+                        <span id="failureCount" class="status-value failure">0</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section" id="resultsSection" style="display: none;">
+                <h2>Results</h2>
+                <div class="results-info">
+                    <p>Total businesses found: <strong id="totalResults">0</strong></p>
+                </div>
+                <div class="download-buttons">
+                    <button id="downloadCsvBtn" class="btn btn-success">Download CSV</button>
+                    <button id="downloadJsonBtn" class="btn btn-success">Download JSON</button>
+                </div>
+            </section>
+
+            <!-- Messages Section -->
+            <section class="messages-section">
+                <div id="messageContainer"></div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2024 Google Maps Scraper | Built with Flask & Playwright</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

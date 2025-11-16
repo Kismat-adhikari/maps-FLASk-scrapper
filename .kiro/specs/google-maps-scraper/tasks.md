@@ -1,0 +1,131 @@
+# Implementation Plan
+
+- [ ] 1. Set up project structure and dependencies
+  - Create directory structure with modules/, static/, templates/, uploads/ folders
+  - Create requirements.txt with Flask, Playwright, pandas, openpyxl dependencies
+  - Create config.py with all configuration settings
+  - Create .gitignore to exclude proxies.txt, uploads/, and __pycache__
+  - _Requirements: 6.1, 8.1, 8.2, 8.3, 8.4_
+
+- [ ] 2. Implement proxy management module
+  - Create modules/__init__.py
+  - Create modules/proxy_manager.py with ProxyManager class
+  - Implement load_proxies() method to parse proxies.txt (IP:PORT:USER:PASS format)
+  - Implement get_next_proxy() method with sequential rotation logic
+  - Implement should_rotate() method to check if 14 requests reached
+  - Implement mark_failure() method to trigger immediate rotation
+  - Implement reset_counter() method for rotation cycle management
+  - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
+
+- [ ] 3. Implement file parser module
+  - Create modules/file_parser.py with FileParser class
+  - Implement parse_csv() static method using pandas
+  - Implement parse_excel() static method using pandas and openpyxl
+  - Implement validate_data() method to check required fields (keyword, zip_code)
+  - Return list of dictionaries with keyword, zip_code, and optional url fields
+  - _Requirements: 1.1, 1.2, 1.4, 1.5_
+
+- [ ] 4. Implement data extraction module
+  - Create modules/data_extractor.py with DataExtractor class
+  - Implement extract_business_info() method to extract name, address, phone, website, rating, review_count, category
+  - Implement clean_phone_number() helper method
+  - Implement clean_rating() helper method to convert string to float
+  - Implement extract_review_count() helper method to parse review count from text
+  - Handle missing fields gracefully by returning None or empty strings
+  - _Requirements: 5.4, 7.2_
+
+- [ ] 5. Implement Playwright scraper module
+  - Create modules/scraper.py with GoogleMapsScraper class
+  - Implement __init__() to accept ProxyManager and headless parameter
+  - Implement initialize_browser() async method to launch Playwright with proxy configuration
+  - Configure browser with visible mode (headless=False), viewport 1920x1080
+  - Implement search_google_maps() async method to navigate and search keyword + zip_code
+  - Implement extract_business_data() async method to collect all business results from page
+  - Implement close_browser() async method for cleanup
+  - Implement scrape_query() async method as main entry point that coordinates the scraping flow
+  - Add timeout handling (30s for requests, 60s for page loads)
+  - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 7.1, 7.2, 7.3_
+
+- [ ] 6. Implement Flask backend with state management
+  - Create app.py with Flask application initialization
+  - Import config.py settings
+  - Create app_state dictionary to track status, counts, current_query, current_proxy, results
+  - Implement route '/' to serve index.html
+  - Implement route '/upload' (POST) to handle file uploads and save to uploads/ folder
+  - Implement route '/start' (POST) to accept manual input and initiate scraping
+  - Implement route '/status' (GET) to return current app_state as JSON
+  - Implement route '/stop' (POST) to set status to 'stopped'
+  - Implement route '/download/<format>' (GET) to generate CSV or JSON downloads
+  - Create async scraping function that iterates through queries, updates state, handles proxy rotation
+  - Integrate ProxyManager, FileParser, and GoogleMapsScraper in scraping workflow
+  - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 8.3_
+
+- [ ] 7. Implement frontend HTML structure
+  - Create templates/index.html with HTML5 structure
+  - Add file upload input accepting .csv and .xlsx files
+  - Add manual entry form with fields for keyword, zip_code, url
+  - Add "Add Row" and "Remove Row" buttons for manual entry
+  - Add Start Scraping button
+  - Add Stop Scraping button
+  - Add progress bar element
+  - Add status display section showing current query, proxy, success/failure counts
+  - Add download buttons for CSV and JSON formats
+  - Link to static/css/style.css and static/js/app.js
+  - _Requirements: 1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 2.4, 2.5, 3.1, 6.3, 6.4_
+
+- [ ] 8. Implement frontend CSS styling
+  - Create static/css/style.css
+  - Style the file upload section with clear visual hierarchy
+  - Style the manual entry form with table layout for rows
+  - Style buttons with hover effects and disabled states
+  - Style progress bar with animated fill
+  - Style status display section with real-time update indicators
+  - Style download section with prominent buttons
+  - Ensure responsive layout for different screen sizes
+  - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
+
+- [ ] 9. Implement frontend JavaScript logic
+  - Create static/js/app.js
+  - Implement file upload handler to send files via POST to /upload
+  - Implement manual entry form with add/remove row functionality
+  - Implement Start button handler to send manual data via POST to /start
+  - Implement Stop button handler to send POST to /stop
+  - Implement status polling function that calls GET /status every 2 seconds
+  - Update progress bar percentage based on processed/total_queries
+  - Update status display with current_query, current_proxy, success_count, failure_count
+  - Implement download button handlers to trigger GET /download/csv and /download/json
+  - Show/hide download buttons based on scraping completion status
+  - Disable Start button while scraping is running
+  - _Requirements: 1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 2.4, 2.5, 3.1, 3.2, 3.3, 6.3, 6.4_
+
+- [ ] 10. Implement error handling and logging
+  - Add try-except blocks in scraper.py for proxy errors, browser errors, network errors
+  - Implement proxy rotation on CAPTCHA detection and timeouts
+  - Implement browser restart logic on crashes
+  - Add logging configuration in app.py with rotating file handler
+  - Log all proxy rotations with timestamps
+  - Log all scraping errors with query details
+  - Log success/failure for each query
+  - Display user-friendly error messages in frontend when validation fails
+  - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 4.5_
+
+- [ ] 11. Integrate all components and test end-to-end flow
+  - Wire ProxyManager into GoogleMapsScraper initialization
+  - Wire FileParser into Flask upload and start routes
+  - Wire DataExtractor into GoogleMapsScraper extract methods
+  - Test file upload with sample CSV containing 3 queries
+  - Test manual entry with 2 queries
+  - Verify visible browser launches and performs searches
+  - Verify proxy rotation occurs after 14 requests
+  - Verify results are collected and downloadable in both CSV and JSON formats
+  - Verify stop functionality halts scraping mid-process
+  - _Requirements: 1.1, 1.2, 1.3, 2.1, 3.1, 3.2, 3.3, 4.2, 4.3, 5.1, 5.5, 6.3, 6.4, 8.5_
+
+- [ ] 12. Create sample data and documentation
+  - Create sample_queries.csv with 5 example queries
+  - Create sample_queries.xlsx with 5 example queries
+  - Create README.md with installation instructions
+  - Document how to add proxies to proxies.txt
+  - Document how to run the application
+  - Document API endpoints for future reference
+  - _Requirements: 8.4, 8.5_
