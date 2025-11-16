@@ -206,8 +206,8 @@ class GoogleMapsScraper:
             
             self.logger.info(f"Found {len(result_links)} business results")
             
-            # Limit to 5 results for testing (configurable)
-            max_results = 5
+            # Limit to 40 results
+            max_results = 40
             result_links = result_links[:max_results]
             
             # Store the results page URL to return to
