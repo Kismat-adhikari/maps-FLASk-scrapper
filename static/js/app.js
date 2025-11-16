@@ -181,6 +181,12 @@ function addBusinessToTable(business) {
     const row = document.createElement('tr');
     
     const statusBadge = '<span class="status-badge status-success">✓ Scraped</span>';
+    
+    // Make business name clickable with Google Maps link
+    const businessName = business.url && business.url !== 'Not given'
+        ? `<a href="${business.url}" target="_blank" class="business-name-link">${business.name}</a>`
+        : `<strong>${business.name}</strong>`;
+    
     const rating = business.rating !== 'Not given' ? `<span class="rating-stars">⭐ ${business.rating}</span>` : 'Not given';
     const website = business.website !== 'Not given' 
         ? `<a href="${business.website}" target="_blank" class="website-link">Visit</a>` 
@@ -188,7 +194,7 @@ function addBusinessToTable(business) {
     
     row.innerHTML = `
         <td>${statusBadge}</td>
-        <td><strong>${business.name}</strong></td>
+        <td>${businessName}</td>
         <td>${business.phone}</td>
         <td>${business.email}</td>
         <td>${rating}</td>

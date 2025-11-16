@@ -440,6 +440,18 @@ body {
     text-decoration: underline;
 }
 
+.business-name-link {
+    color: #2d3748;
+    text-decoration: underline;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+.business-name-link:hover {
+    color: #667eea;
+    text-decoration: underline;
+}
+
 /* Completion Message */
 .completion-message {
     text-align: center;
