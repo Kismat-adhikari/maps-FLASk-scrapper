@@ -35,9 +35,9 @@ class GoogleMapsScraper:
         self.page: Optional[Page] = None
         self.logger = logging.getLogger(__name__)
         
-        # Timeouts (Optimized for speed)
-        self.request_timeout = 15000  # 15 seconds (reduced from 30)
-        self.page_load_timeout = 30000  # 30 seconds (reduced from 60)
+        # Timeouts (Optimized for Apify stability)
+        self.request_timeout = 20000  # 20 seconds for element waits
+        self.page_load_timeout = 90000  # 90 seconds for page loads (critical for Apify proxy)
     
     async def initialize_browser(self, proxy: Dict = None) -> bool:
         """
