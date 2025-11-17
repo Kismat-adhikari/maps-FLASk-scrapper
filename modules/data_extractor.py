@@ -103,20 +103,49 @@ class DataExtractor:
                 name_selectors = [
                     'h1.DUwDvf',  # Main heading
                     'h1[class*="fontHeadline"]',
+                    'h1.fontHeadlineLarge',
                     'h1',
-                    'div[role="main"] h1'
+                    'div[role="main"] h1',
+                    '[data-attrid="title"]',
+                    'div.SPZz6b h1',
+                    'div.tAiQdd h1'
                 ]
                 
                 for selector in name_selectors:
                     try:
-                        name_elem = await page.locator(selector).first.text_content(timeout=3000)
+                        name_elem = await page.locator(selector).first.text_content(timeout=5000)
                         if name_elem and name_elem.strip() and name_elem.strip() != 'Results':
                             business_info['name'] = name_elem.strip()
+                            logger.debug(f"Found name with selector '{selector}': {business_info['name']}")
                             break
-                    except:
+                    except Exception as e:
+                        logger.debug(f"Selector '{selector}' failed: {e}")
                         continue
-            except:
-                pass
+                
+                # If still no name, try getting page title as fallback
+                if business_info['name'] == 'Not given':
+                    try:
+                        title = await page.title()
+                        if title and ' - Google Maps' in title:
+                            business_info['name'] = title.replace(' - Google Maps', '').strip()
+                            logger.debug(f"Extracted name from page title: {business_info['name']}")
+                    except:
+                        pass
+                
+                # Log if we still couldn't find the name
+                if business_info['name'] == 'Not given':
+                    logger.warning(f"Could not extract business name from page: {page.url}")
+                    # Log page content for debugging
+                    try:
+                        page_content = await page.content()
+                        logger.debug(f"Page HTML length: {len(page_content)} chars")
+                        # Check if page has any h1 tags
+                        h1_count = page_content.count('<h1')
+                        logger.debug(f"Number of h1 tags found: {h1_count}")
+                    except:
+                        pass
+            except Exception as e:
+                logger.error(f"Error extracting business name: {e}")
             
             # Extract category
             try:

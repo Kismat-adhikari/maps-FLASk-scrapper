@@ -330,15 +330,19 @@ class GoogleMapsScraper:
             page = await self.browser.new_page(viewport={'width': 1920, 'height': 1080})
             page.set_default_timeout(20000)  # Reduced from 30s to 20s
             
-            # Navigate to business page - use domcontentloaded for speed
-            await page.goto(business_url, timeout=45000, wait_until='domcontentloaded')
+            # Navigate to business page - wait for full load in Apify environment
+            await page.goto(business_url, timeout=45000, wait_until='load')
             
-            # Smart wait: Wait for business name OR timeout quickly
+            # Give page time to render (critical in Apify)
+            await asyncio.sleep(2)
+            
+            # Smart wait: Wait for business name
             try:
-                await page.wait_for_selector('h1.DUwDvf, h1', timeout=3000, state='visible')
+                await page.wait_for_selector('h1.DUwDvf, h1.fontHeadlineLarge, h1', timeout=8000, state='visible')
             except:
-                # If name not found in 3s, wait a bit more for slow pages
-                await asyncio.sleep(1)
+                # If name not found, wait more for slow pages
+                self.logger.debug(f"[Tab {index}/{total}] Name selector not found quickly, waiting...")
+                await asyncio.sleep(3)
             
             # Extract business info
             business_info = await DataExtractor.extract_detailed_business_info(page)
@@ -358,7 +362,13 @@ class GoogleMapsScraper:
                 self.logger.info(f"[Tab {index}/{total}] ✓ {business_info.get('name')}")
                 return business_info
             else:
-                self.logger.warning(f"[Tab {index}/{total}] ✗ No name extracted")
+                self.logger.warning(f"[Tab {index}/{total}] ✗ No name extracted from {business_url}")
+                # Log page title for debugging
+                try:
+                    title = await page.title()
+                    self.logger.debug(f"[Tab {index}/{total}] Page title: {title}")
+                except:
+                    pass
                 return None
                 
         except Exception as e:
@@ -372,7 +382,7 @@ class GoogleMapsScraper:
                 except:
                     pass
     
-    async def extract_business_data_parallel(self, csv_callback=None, max_concurrent=5) -> List[Dict]:
+    async def extract_business_data_parallel(self, csv_callback=None, max_concurrent=3) -> List[Dict]:
         """
         Extract business data using parallel tabs for faster scraping.
         
@@ -415,7 +425,7 @@ class GoogleMapsScraper:
                     continue
             
             self.logger.info(f"Collected {len(business_urls)} business URLs")
-            self.logger.info(f"🚀 PARALLEL scraping: {max_concurrent} tabs at once")
+            self.logger.info(f"🚀 PARALLEL scraping: {max_concurrent} tabs at once (optimized for Apify)")
             
             # Process businesses in batches
             for i in range(0, len(business_urls), max_concurrent):
@@ -425,11 +435,13 @@ class GoogleMapsScraper:
                 
                 self.logger.info(f"📦 Batch {batch_num}/{total_batches} ({len(batch)} tabs)")
                 
-                # Create tasks for parallel scraping
-                tasks = [
-                    self._scrape_single_business(url, i + idx + 1, len(business_urls))
-                    for idx, url in enumerate(batch)
-                ]
+                # Create tasks for parallel scraping with staggered start
+                tasks = []
+                for idx, url in enumerate(batch):
+                    tasks.append(self._scrape_single_business(url, i + idx + 1, len(business_urls)))
+                    # Small delay between starting each tab (helps in Apify)
+                    if idx < len(batch) - 1:
+                        await asyncio.sleep(0.5)
                 
                 # Run all tasks in parallel
                 results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -446,7 +458,9 @@ class GoogleMapsScraper:
                             except Exception as e:
                                 self.logger.warning(f"Error in callback: {e}")
                 
-                # No delay between batches - go straight to next batch for speed!
+                # Small delay between batches to avoid overwhelming browser in Apify
+                if i + max_concurrent < len(business_urls):
+                    await asyncio.sleep(1)
             
             self.logger.info(f"✅ Parallel scraping complete! Extracted {len(businesses)} businesses")
             
