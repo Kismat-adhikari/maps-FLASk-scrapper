@@ -49,7 +49,7 @@
       "title": "Max Results Per Query",
       "type": "integer",
       "description": "Maximum number of businesses to scrape per query (1-120)",
-      "default": 60,
+      "default": 20,
       "minimum": 1,
       "maximum": 120,
       "editor": "number"
@@ -104,7 +104,7 @@
       "title": "Extract Emails",
       "type": "boolean",
       "description": "Extract email addresses from business websites (slower but more data)",
-      "default": true,
+      "default": false,
       "editor": "checkbox"
     },
     "deduplicate": {
