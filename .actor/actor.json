@@ -7,9 +7,9 @@
   "meta": {
     "templateId": "python-playwright"
   },
-  "input": "./INPUT_SCHEMA.json",
+  "input": "./.actor/INPUT_SCHEMA.json",
   "dockerfile": "./Dockerfile",
-  "readme": "./README_APIFY.md",
+  "readme": "./README.md",
   "storages": {
     "dataset": {
       "actorSpecification": 1,
