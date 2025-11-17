@@ -18,6 +18,7 @@ from config import Config
 from modules.proxy_manager import ProxyManager
 from modules.file_parser import FileParser
 from modules.scraper import GoogleMapsScraper
+from modules.utils import DataUtils, NotificationManager, ProxyHealthMonitor
 
 
 # Initialize Flask app
@@ -54,24 +55,45 @@ app_state = {
 # Global instances
 proxy_manager = None
 scraper = None
+notification_manager = None
+proxy_health_monitor = None
 
 
 def initialize_components():
     """Initialize proxy manager and scraper."""
-    global proxy_manager, scraper
+    global proxy_manager, scraper, notification_manager, proxy_health_monitor
     
     try:
         proxy_manager = ProxyManager(
             proxy_file=Config.PROXY_FILE,
             rotation_threshold=Config.ROTATION_THRESHOLD
         )
-        logger.info(f"Initialized ProxyManager with {proxy_manager.get_proxy_count()} proxies")
+        proxy_count = proxy_manager.get_proxy_count()
+        logger.info(f"Initialized ProxyManager with {proxy_count} proxies")
+        
+        # Validate minimum proxy count
+        if proxy_count < Config.MIN_PROXY_COUNT:
+            logger.error(f"Insufficient proxies! Found {proxy_count}, need at least {Config.MIN_PROXY_COUNT}")
+            logger.error(f"Add proxies to {Config.PROXY_FILE} in format: IP:PORT:USERNAME:PASSWORD")
+            return False
         
         scraper = GoogleMapsScraper(
             proxy_manager=proxy_manager,
             headless=Config.HEADLESS
         )
         logger.info("Initialized GoogleMapsScraper")
+        
+        # Initialize notification manager if enabled
+        if Config.ENABLE_NOTIFICATIONS:
+            notification_manager = NotificationManager(
+                email=Config.NOTIFICATION_EMAIL,
+                webhook=Config.NOTIFICATION_WEBHOOK
+            )
+            logger.info("Initialized NotificationManager")
+        
+        # Initialize proxy health monitor
+        proxy_health_monitor = ProxyHealthMonitor()
+        logger.info("Initialized ProxyHealthMonitor")
         
         return True
     except Exception as e:
@@ -190,8 +212,8 @@ async def scrape_queries_async(queries):
         
         app_state['processed'] += 1
         
-        # Small delay between queries to avoid rate limiting
-        await asyncio.sleep(2)
+        # Configurable delay between queries to avoid rate limiting
+        await asyncio.sleep(Config.DELAY_BETWEEN_QUERIES)
     
     # Cleanup
     try:
@@ -199,6 +221,16 @@ async def scrape_queries_async(queries):
         logger.info("Scraper cleanup completed")
     except Exception as e:
         logger.error(f"Error during scraper cleanup: {e}")
+    
+    # Deduplicate results if enabled
+    original_count = len(app_state['results'])
+    if Config.DEDUPLICATE_RESULTS and app_state['results']:
+        app_state['results'] = DataUtils.deduplicate_businesses(
+            app_state['results'],
+            method=Config.DEDUP_METHOD
+        )
+        unique_count = len(app_state['results'])
+        logger.info(f"Deduplication: {original_count} -> {unique_count} businesses")
     
     # Update final status
     if app_state['status'] != 'stopped':
@@ -209,6 +241,19 @@ async def scrape_queries_async(queries):
     logger.info(f"Scraping finished: {app_state['success_count']} successful, {app_state['failure_count']} failed")
     logger.info(f"Total businesses collected: {len(app_state['results'])}")
     logger.info(f"Results saved to: {csv_filepath}")
+    
+    # Send completion notification if enabled
+    if notification_manager and Config.ENABLE_NOTIFICATIONS:
+        try:
+            notification_manager.send_completion_notification({
+                'total_queries': len(queries),
+                'success_count': app_state['success_count'],
+                'failure_count': app_state['failure_count'],
+                'total_businesses': original_count,
+                'unique_businesses': len(app_state['results'])
+            })
+        except Exception as e:
+            logger.error(f"Failed to send notification: {e}")
 
 
 def run_scraping_thread(queries):
@@ -235,6 +280,12 @@ def run_scraping_thread(queries):
 def index():
     """Serve the main web interface."""
     return render_template('index.html')
+
+
+@app.route('/dashboard')
+def dashboard():
+    """Serve the proxy health dashboard."""
+    return render_template('dashboard.html')
 
 
 @app.route('/download-template')
@@ -427,6 +478,25 @@ def stop_scraping():
         return jsonify({'message': 'Scraping stopped'}), 200
     else:
         return jsonify({'message': 'No scraping in progress'}), 200
+
+
+@app.route('/proxy-health')
+def get_proxy_health():
+    """
+    Get proxy health statistics.
+    Returns success rates and performance metrics for all proxies.
+    """
+    if not proxy_health_monitor:
+        return jsonify({'error': 'Proxy health monitor not initialized'}), 500
+    
+    stats = proxy_health_monitor.get_proxy_stats()
+    best_proxy = proxy_health_monitor.get_best_proxy()
+    
+    return jsonify({
+        'proxy_stats': stats,
+        'best_proxy': best_proxy,
+        'total_proxies': proxy_manager.get_proxy_count() if proxy_manager else 0
+    })
 
 
 @app.route('/download/<format>')

@@ -426,17 +426,26 @@ class DataExtractor:
         if not website_url or website_url == 'Not given':
             return None
         
+        # Check if email extraction is enabled
+        from config import Config
+        if not Config.EXTRACT_EMAILS_FROM_WEBSITES:
+            return None
+        
         logger.info("No email from Maps, checking website...")
         
-        # Email regex pattern
+        # Email regex pattern (improved to avoid false positives)
         email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
         
         # Common non-business email domains to filter out
         excluded_domains = [
             'example.com', 'domain.com', 'email.com', 'test.com',
             'wix.com', 'wordpress.com', 'sentry.io', 'google.com',
-            'facebook.com', 'twitter.com', 'instagram.com', 'squarespace.com'
+            'facebook.com', 'twitter.com', 'instagram.com', 'squarespace.com',
+            'linkedin.com', 'youtube.com', 'pinterest.com'
         ]
+        
+        # Image file extensions to exclude
+        image_extensions = ('.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico', '.bmp')
         
         # Store current URL to return to it later
         original_url = page.url
@@ -445,16 +454,19 @@ class DataExtractor:
             # Use the same page (don't create new one)
             logger.info(f"Visiting website for email extraction...")
             
+            # Use configurable timeout
+            timeout = Config.EMAIL_EXTRACTION_TIMEOUT * 1000  # Convert to milliseconds
+            
             # Try homepage first
             try:
                 logger.info(f"Visiting homepage: {website_url}")
                 try:
-                    await page.goto(website_url, timeout=5000, wait_until='networkidle')  # Reduced from 10s
+                    await page.goto(website_url, timeout=timeout, wait_until='networkidle')
                 except:
                     # If networkidle times out, try with domcontentloaded
-                    await page.goto(website_url, timeout=5000, wait_until='domcontentloaded')  # Reduced from 10s
+                    await page.goto(website_url, timeout=timeout, wait_until='domcontentloaded')
                 
-                await page.wait_for_timeout(1000)  # Reduced from 2s - Wait for JavaScript to render
+                await page.wait_for_timeout(500)  # Quick wait for JavaScript
                 logger.info("Page loaded, extracting visible text...")
                 
                 # Get VISIBLE rendered text (not raw HTML)
@@ -480,13 +492,17 @@ class DataExtractor:
                 for email in emails:
                     email_lower = email.lower()
                     # Exclude image files and other non-email patterns
-                    if email_lower.endswith(('.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico')):
+                    if email_lower.endswith(image_extensions):
                         continue
-                    if not any(domain in email_lower for domain in excluded_domains):
+                    # Exclude common non-business domains
+                    if any(domain in email_lower for domain in excluded_domains):
+                        continue
+                    # Additional validation: must have @ and valid TLD
+                    if '@' in email and '.' in email.split('@')[1]:
                         logger.info(f"Found valid email on homepage: {email}")
                         # Return to original page
                         try:
-                            await page.goto(original_url, timeout=5000)
+                            await page.goto(original_url, timeout=timeout)
                         except:
                             pass
                         return email
@@ -498,11 +514,11 @@ class DataExtractor:
                     contact_url = website_url.rstrip('/') + '/contact'
                     logger.info(f"Trying contact page: {contact_url}")
                     try:
-                        await page.goto(contact_url, timeout=5000, wait_until='networkidle')  # Reduced from 10s
+                        await page.goto(contact_url, timeout=timeout, wait_until='networkidle')
                     except:
-                        await page.goto(contact_url, timeout=5000, wait_until='domcontentloaded')  # Reduced from 10s
+                        await page.goto(contact_url, timeout=timeout, wait_until='domcontentloaded')
                     
-                    await page.wait_for_timeout(1000)  # Reduced from 2s - Wait for JavaScript to render
+                    await page.wait_for_timeout(500)  # Quick wait for JavaScript
                     logger.info("Contact page loaded, extracting visible text...")
                     
                     # Get VISIBLE rendered text (not raw HTML)
@@ -526,13 +542,17 @@ class DataExtractor:
                     for email in emails:
                         email_lower = email.lower()
                         # Exclude image files and other non-email patterns
-                        if email_lower.endswith(('.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico')):
+                        if email_lower.endswith(image_extensions):
                             continue
-                        if not any(domain in email_lower for domain in excluded_domains):
+                        # Exclude common non-business domains
+                        if any(domain in email_lower for domain in excluded_domains):
+                            continue
+                        # Additional validation
+                        if '@' in email and '.' in email.split('@')[1]:
                             logger.info(f"Found valid email on /contact: {email}")
                             # Return to original page
                             try:
-                                await page.goto(original_url, timeout=5000)
+                                await page.goto(original_url, timeout=timeout)
                             except:
                                 pass
                             return email
@@ -548,7 +568,7 @@ class DataExtractor:
             # Return to original page
             try:
                 logger.info(f"Returning to original page...")
-                await page.goto(original_url, timeout=5000)
+                await page.goto(original_url, timeout=timeout)
             except Exception as e:
                 logger.error(f"Error returning to original page: {e}")
         
