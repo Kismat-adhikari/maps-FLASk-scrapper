@@ -15,16 +15,21 @@ from modules.data_extractor import DataExtractor
 class GoogleMapsScraper:
     """Scrapes business data from Google Maps using Playwright."""
     
-    def __init__(self, proxy_manager: ProxyManager, headless: bool = False):
+    def __init__(self, proxy_manager: ProxyManager = None, headless: bool = False, 
+                 use_apify_proxy: bool = False, apify_proxy_config: Dict = None):
         """
         Initialize the Google Maps scraper.
         
         Args:
-            proxy_manager: ProxyManager instance for proxy rotation
+            proxy_manager: ProxyManager instance for proxy rotation (optional if using Apify proxy)
             headless: Whether to run browser in headless mode (default: False for visible)
+            use_apify_proxy: Whether to use Apify's proxy service
+            apify_proxy_config: Apify proxy configuration dict
         """
         self.proxy_manager = proxy_manager
         self.headless = headless
+        self.use_apify_proxy = use_apify_proxy
+        self.apify_proxy_config = apify_proxy_config or {}
         self.playwright = None
         self.browser: Optional[Browser] = None
         self.page: Optional[Page] = None
@@ -461,7 +466,7 @@ class GoogleMapsScraper:
         except Exception as e:
             self.logger.error(f"Error closing browser: {e}")
     
-    async def scrape_query(self, query: Dict, csv_callback=None, retry_count: int = 0, max_retries: int = 3) -> List[Dict]:
+    async def scrape_query(self, query: Dict, csv_callback=None, retry_count: int = 0, max_retries: int = 3, max_results: int = 60) -> List[Dict]:
         """
         Main entry point to scrape a single query with retry logic.
         Coordinates the entire scraping flow.
@@ -471,6 +476,7 @@ class GoogleMapsScraper:
             csv_callback: Optional callback to save each business incrementally
             retry_count: Current retry attempt (internal use)
             max_retries: Maximum number of retries
+            max_results: Maximum number of businesses to scrape (default: 60)
             
         Returns:
             List of business dictionaries
