@@ -23,21 +23,21 @@ wheels/
 .installed.cfg
 *.egg
 pip-log.txt
-pip-delete-this-directory.txt
+
+# Apify storage
+apify_storage/
+storage/
+.apify/
 
 # Output files
-output/
 *.csv
 *.xlsx
 *.json
-
-# Uploads
-uploads/*
-!uploads/.gitkeep
+!INPUT_SCHEMA.json
+!.actor/actor.json
 
 # Logs
 *.log
-scraper.log*
 
 # Sensitive data
 proxies.txt
@@ -51,8 +51,6 @@ proxies.txt
 *.swp
 *.swo
 *~
-.project
-.pydevproject
 
 # OS
 .DS_Store
@@ -67,3 +65,7 @@ htmlcov/
 
 # Playwright
 playwright/.auth/
+
+# Temporary files
+temp_*.txt
+temp_*.json

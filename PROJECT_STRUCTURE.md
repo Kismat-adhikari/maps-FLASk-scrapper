@@ -1,299 +1,302 @@
-# Project Structure
+# Google Maps Scraper - Apify Actor Structure
 
-This document provides an overview of the Google Maps Scraper project structure.
+Clean, production-ready Apify Actor for scraping Google Maps.
 
-## Directory Layout
+## Directory Structure
 
 ```
-google-maps-scraper/
-├── app.py                          # Main Flask application
-├── config.py                       # Configuration settings
-├── requirements.txt                # Python dependencies
-├── runtime.txt                     # Python version for deployment
-├── Procfile                        # Deployment process file
-├── render.yaml                     # Render deployment configuration
-├── proxies.txt                     # Proxy list (not in git)
-├── .gitignore                      # Git ignore rules
+google-maps-scraper-apify/
 │
-├── README.md                       # Main documentation
-├── QUICK_START.md                  # Quick start guide
-├── CHANGELOG.md                    # Version history
-├── DEPLOYMENT_CHECKLIST.md         # Pre-deployment checklist
+├── 📄 Apify Configuration
+│   ├── main.py                      # Actor entry point
+│   ├── INPUT_SCHEMA.json            # Input form definition
+│   ├── .actor/
+│   │   └── actor.json               # Actor metadata
+│   ├── Dockerfile                   # Container configuration
+│   └── requirements.txt             # Python dependencies
 │
-├── modules/                        # Core application modules
-│   ├── __init__.py
-│   ├── scraper.py                 # Playwright scraper logic
-│   ├── proxy_manager.py           # Proxy rotation management
-│   ├── file_parser.py             # CSV/Excel file parsing
-│   ├── data_extractor.py          # Data extraction utilities
-│   └── utils.py                   # Helper functions
+├── 🔧 Core Modules
+│   └── modules/
+│       ├── __init__.py              # Package initialization
+│       ├── scraper.py               # Main scraping logic
+│       ├── proxy_manager.py         # Proxy rotation
+│       ├── data_extractor.py        # Data extraction
+│       ├── file_parser.py           # File parsing utilities
+│       └── utils.py                 # Helper functions
 │
-├── templates/                      # HTML templates
-│   ├── index.html                 # Main web interface
-│   └── dashboard.html             # Proxy health dashboard
+├── ⚙️ Configuration
+│   ├── config.py                    # App configuration
+│   ├── .gitignore                   # Git ignore rules
+│   ├── .dockerignore                # Docker ignore rules
+│   └── .actorignore                 # Apify ignore rules
 │
-├── static/                         # Static assets
-│   ├── css/
-│   │   └── style.css              # Application styles
-│   └── js/
-│       └── app.js                 # Frontend JavaScript (MapLibre)
+├── 📚 Documentation
+│   ├── README.md                    # Main documentation (Apify marketplace)
+│   ├── CHANGELOG.md                 # Version history
+│   ├── APIFY_DEPLOYMENT_GUIDE.md    # Deployment instructions
+│   ├── APIFY_READY_SUMMARY.md       # Complete overview
+│   ├── TESTING_APIFY.md             # Testing guide
+│   ├── PROXY_SETUP_GUIDE.md         # Proxy configuration
+│   └── TROUBLESHOOTING.md           # Common issues
 │
-├── docs/                           # Documentation
-│   ├── API_DOCUMENTATION.md       # REST API reference
-│   ├── BULK_UPLOAD_GUIDE.md       # File upload guide
-│   ├── PROXY_SETUP_GUIDE.md       # Proxy configuration
-│   ├── RENDER_DEPLOYMENT.md       # Deployment instructions
-│   └── TROUBLESHOOTING.md         # Common issues
-│
-├── tests/                          # Test files
-│   ├── test_integration.py        # Integration tests
-│   ├── test_parallel_scraper.py   # Parallel scraping tests
-│   └── run_performance_test.py    # Performance benchmarks
-│
-├── samples/                        # Sample files
-│   └── sample_queries.csv         # Example CSV file
-│
-├── output/                         # Scraped results (CSV/JSON)
-│   └── .gitkeep
-│
-└── uploads/                        # Temporary file uploads
-    └── .gitkeep
+└── 🔐 Sensitive (not in git)
+    └── proxies.txt                  # Proxy list (user-provided)
 ```
 
-## Core Files
+## File Descriptions
 
-### Application Entry Point
-- **app.py**: Main Flask application with routes and scraping logic
+### Apify Configuration Files
 
-### Configuration
-- **config.py**: Centralized configuration (timeouts, proxy settings, etc.)
-- **proxies.txt**: List of proxies in format `IP:PORT:USERNAME:PASSWORD`
+**main.py**
+- Entry point for Apify Actor
+- Reads input from Apify
+- Coordinates scraping process
+- Outputs to Apify Dataset
 
-### Deployment
-- **Procfile**: Tells deployment platform how to run the app
-- **runtime.txt**: Specifies Python version
-- **render.yaml**: Render-specific deployment configuration
-- **requirements.txt**: Python package dependencies
+**INPUT_SCHEMA.json**
+- Defines input form in Apify Console
+- Specifies all configuration options
+- Provides validation rules
 
-## Modules
+**.actor/actor.json**
+- Actor metadata (name, version, etc.)
+- Storage configuration
+- Dataset view definitions
 
-### scraper.py
-- Playwright-based browser automation
-- Business data extraction from Google Maps
-- CAPTCHA detection and handling
-- Retry logic with proxy rotation
+**Dockerfile**
+- Container build instructions
+- Based on Apify's Python+Playwright image
+- Installs dependencies and browsers
 
-### proxy_manager.py
-- Sequential proxy rotation
-- Threshold-based rotation (every N requests)
-- Failure-triggered rotation
-- Proxy health tracking
+**requirements.txt**
+- Python package dependencies
+- Apify SDK, Playwright, pandas, etc.
 
-### file_parser.py
-- CSV and Excel file parsing
-- Support for keyword+location and URL modes
-- Input validation and error handling
+### Core Modules
 
-### data_extractor.py
-- Extract business information from page elements
-- Parse addresses, phone numbers, ratings
-- Handle missing or malformed data
+**modules/scraper.py**
+- Main scraping logic using Playwright
+- Handles browser automation
+- Supports both Apify and custom proxies
+- Parallel scraping with multiple tabs
+- CAPTCHA detection and retry logic
 
-### utils.py
-- Data deduplication
+**modules/proxy_manager.py**
+- Proxy rotation management
+- Sequential rotation with threshold
+- Failure tracking and recovery
+- Health monitoring
+
+**modules/data_extractor.py**
+- Extracts business data from pages
+- Parses addresses, phones, ratings
 - Email extraction from websites
+- Handles missing/malformed data
+
+**modules/file_parser.py**
+- CSV/Excel file parsing (if needed)
+- Input validation
+- Error handling
+
+**modules/utils.py**
+- Data deduplication
+- Email extraction helpers
 - Notification management
 - Proxy health monitoring
 
-## Templates
+### Configuration
 
-### index.html
-- Main web interface
-- Three input modes: keyword search, URL input, file upload
-- Real-time status updates
-- Interactive map with MapLibre GL JS
-- Results table and download options
+**config.py**
+- Centralized configuration
+- Timeouts, thresholds, settings
+- Can be overridden by Apify input
 
-### dashboard.html
-- Proxy health monitoring dashboard
-- Success rates and performance metrics
-- Visual charts and statistics
+**.gitignore**
+- Excludes sensitive files from git
+- Python cache, logs, proxies
 
-## Static Assets
+**.dockerignore**
+- Excludes unnecessary files from Docker build
+- Speeds up container builds
 
-### style.css
-- Modern, responsive design
-- Gradient backgrounds and animations
-- Card-based layout
-- Mobile-friendly
+**.actorignore**
+- Excludes files from Apify upload
+- Reduces actor size
 
-### app.js
-- MapLibre GL JS integration
-- Real-time map updates
-- Status polling (every 1.5 seconds)
-- Marker animations and popups
-- File upload handling
+### Documentation
 
-## Documentation
+**README.md**
+- Main documentation for Apify marketplace
+- Features, usage, examples
+- Pricing information
+- What users see when browsing actors
 
-### User Guides
-- **README.md**: Complete project overview
-- **QUICK_START.md**: Get started in 5 minutes
-- **BULK_UPLOAD_GUIDE.md**: File upload instructions
+**APIFY_DEPLOYMENT_GUIDE.md**
+- Step-by-step deployment instructions
+- Account setup, import, testing
+- Publishing to store
+- Marketing strategies
 
-### Technical Docs
-- **API_DOCUMENTATION.md**: REST API endpoints
-- **PROXY_SETUP_GUIDE.md**: Proxy configuration
-- **TROUBLESHOOTING.md**: Common issues and solutions
+**APIFY_READY_SUMMARY.md**
+- Complete project overview
+- Revenue potential
+- Competitive advantages
+- Success metrics
 
-### Deployment
-- **RENDER_DEPLOYMENT.md**: Deploy to Render
-- **DEPLOYMENT_CHECKLIST.md**: Pre-deployment checklist
+**TESTING_APIFY.md**
+- How to test the actor
+- Local vs platform testing
+- Test scenarios
 
-## Tests
+**PROXY_SETUP_GUIDE.md**
+- How to configure proxies
+- Apify proxy vs custom proxies
+- Proxy format and requirements
 
-### Integration Tests
-- **test_integration.py**: Verify all components work together
-- Tests proxy manager, file parser, data extractor, scraper
+**TROUBLESHOOTING.md**
+- Common issues and solutions
+- Error messages explained
+- Performance optimization
 
-### Performance Tests
-- **test_parallel_scraper.py**: Test parallel scraping
-- **run_performance_test.py**: Benchmark scraping speed
+**CHANGELOG.md**
+- Version history
+- Feature additions
+- Bug fixes
 
 ## Data Flow
 
-1. **User Input** → Web interface (index.html)
-2. **Request** → Flask routes (app.py)
-3. **File Upload** → FileParser (file_parser.py)
-4. **Scraping** → GoogleMapsScraper (scraper.py)
-5. **Proxy Rotation** → ProxyManager (proxy_manager.py)
-6. **Data Extraction** → DataExtractor (data_extractor.py)
-7. **Results** → CSV/JSON files in output/
-8. **Real-time Updates** → Status polling (app.js)
-9. **Map Visualization** → MapLibre GL JS (app.js)
+```
+User Input (Apify Console)
+    ↓
+INPUT_SCHEMA.json (validation)
+    ↓
+main.py (Actor entry point)
+    ↓
+modules/scraper.py (browser automation)
+    ↓
+modules/proxy_manager.py (proxy rotation)
+    ↓
+modules/data_extractor.py (data extraction)
+    ↓
+Apify Dataset (output)
+    ↓
+User Downloads Results
+```
 
 ## Key Features
 
-### Frontend
-- Modern, responsive UI
-- Real-time progress tracking
-- Interactive map with markers
-- Multiple input modes
-- CSV/JSON download
+### Input Modes
+1. **Keyword + Location** - Search by keywords and locations
+2. **URL Mode** - Scrape from Google Maps URLs
 
-### Backend
-- Flask REST API
-- Playwright browser automation
-- Smart proxy rotation
-- Incremental CSV saving
-- Error handling and retry logic
+### Proxy Support
+1. **Apify Proxy** - Use Apify's residential proxies (recommended)
+2. **Custom Proxies** - Bring your own proxies (cheaper)
 
-### Scraping
-- Visible or headless browser
-- CAPTCHA detection
-- Automatic proxy rotation
-- Parallel scraping support
+### Output
+- Apify Dataset (JSON)
+- Downloadable as CSV, JSON, Excel
+- 15+ fields per business
+
+### Advanced Features
+- Parallel scraping (5 tabs simultaneously)
 - Email extraction from websites
-
-## Configuration Options
-
-See `config.py` for all available settings:
-- Proxy rotation threshold
-- Request/page load timeouts
-- Headless mode (on/off)
-- Parallel scraping settings
-- Deduplication options
-- Email extraction settings
-- Notification settings
-
-## Output Files
-
-### Scraped Results
-- Location: `output/`
-- Format: `{location}-{date}.csv` or `.json`
-- Columns: name, address, phone, website, rating, etc.
-
-### Logs
-- Location: `scraper.log` (root directory)
-- Rotation: 10MB max, 3 backups
-- Level: INFO (configurable)
-
-## Environment Variables
-
-Optional environment variables:
-- `SECRET_KEY`: Flask secret key (required for production)
-- `NOTIFICATION_EMAIL`: Email for completion notifications
-- `NOTIFICATION_WEBHOOK`: Webhook URL for notifications
-
-## Git Ignored Files
-
-The following are not tracked in git:
-- `__pycache__/` - Python bytecode
-- `output/` - Scraped results
-- `uploads/` - Temporary uploads
-- `*.log` - Log files
-- `proxies.txt` - Proxy list (sensitive)
-- `.env` - Environment variables
-- `.vscode/`, `.idea/` - IDE settings
+- Smart proxy rotation
+- CAPTCHA detection and retry
+- Deduplication
+- Real-time progress tracking
 
 ## Dependencies
 
 ### Python Packages
-- Flask 3.0.0 - Web framework
-- Playwright 1.40.0 - Browser automation
-- pandas 2.1.4 - Data processing
-- openpyxl 3.1.2 - Excel file handling
-- gunicorn 21.2.0 - Production server
+- `apify>=3.0.0` - Apify SDK
+- `playwright>=1.40.0` - Browser automation
+- `pandas>=2.1.0` - Data processing
+- `requests>=2.31.0` - HTTP requests
+- `beautifulsoup4>=4.12.0` - HTML parsing
+- `lxml>=4.9.0` - XML/HTML parser
 
-### Frontend Libraries
-- MapLibre GL JS 3.6.2 - Interactive maps
-- Vanilla JavaScript - No framework dependencies
+### System Requirements
+- Python 3.9+
+- Chromium browser (installed via Playwright)
+- 2GB RAM minimum
+- Internet connection
 
-## Browser Requirements
+## Environment Variables
 
-- Chromium (installed via Playwright)
-- Supports headless and visible modes
-- Requires ~200MB disk space for browser
+Optional environment variables:
+- `APIFY_TOKEN` - Apify API token (auto-set by platform)
+- `APIFY_PROXY_PASSWORD` - Apify proxy password (auto-set)
 
-## System Requirements
+## Storage
 
-- Python 3.9 or higher
-- 2GB RAM minimum (4GB recommended)
-- 500MB disk space (for browser + dependencies)
-- Internet connection (for scraping)
+### Apify Dataset
+- Stores scraped business data
+- Accessible via Apify API
+- Downloadable in multiple formats
 
-## Deployment Platforms
-
-Tested and working on:
-- Render (recommended)
-- Heroku
-- VPS/Cloud servers
-- Local development
-
-## Security Considerations
-
-- Proxy credentials not in git
-- Secret key via environment variable
-- Input validation on all endpoints
-- File upload size limits (5MB)
-- CORS configured properly
+### Key-Value Store
+- Stores actor input
+- Temporary data storage
+- Managed by Apify platform
 
 ## Performance
 
-- Average: 10-15 seconds per query
-- Throughput: 4-6 queries per minute
-- Results: Up to 60 businesses per search
-- Parallel: 3-5 tabs simultaneously
+- **Speed**: 10-15 seconds per query
+- **Throughput**: 4-6 queries per minute
+- **Parallel**: 5 tabs simultaneously
+- **Results**: Up to 120 businesses per query
+
+## Cost Optimization
+
+### Reduce Costs
+- Use custom proxies instead of Apify proxy (save 60%)
+- Disable email extraction (faster = cheaper)
+- Lower maxResultsPerQuery (20-40 instead of 60)
+- Run during off-peak hours
+
+### Typical Costs
+- **With Apify proxy**: ~$0.75-1.00 per 1,000 businesses
+- **With custom proxy**: ~$0.20-0.30 per 1,000 businesses
+
+## Security
+
+- Proxy credentials not in git
+- Environment variables for sensitive data
+- Input validation on all parameters
+- Rate limiting to prevent abuse
 
 ## Maintenance
 
-- Logs rotated automatically
-- Browser cache cleared between sessions
-- Proxy health monitored
-- Results deduplicated
-- Memory managed efficiently
+### Regular Updates
+- Monitor Google Maps changes
+- Update selectors if needed
+- Optimize performance
+- Fix bugs promptly
+
+### User Support
+- Respond to issues quickly
+- Update documentation
+- Add requested features
+- Maintain high rating
+
+## Deployment
+
+### To Apify Platform
+1. Push code to GitHub
+2. Import to Apify from GitHub
+3. Build actor
+4. Test with sample input
+5. Publish to store
+
+### Updates
+- Push changes to GitHub
+- Apify auto-rebuilds
+- Test before publishing
+- Update version number
 
 ---
 
-**Last Updated**: November 17, 2025  
-**Version**: 2.0.0
+**Status**: ✅ Production Ready  
+**Version**: 1.0.0  
+**Last Updated**: November 17, 2025

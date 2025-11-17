@@ -1,343 +1,244 @@
-# Google Maps Scraper
+# Google Maps Scraper - Apify Actor
 
-A powerful web application for scraping business data from Google Maps without using API keys. Built with Flask, Python, Playwright, and a modern web frontend.
+Scrape business data from Google Maps **without API keys**. Extract names, addresses, phones, emails, ratings, reviews, and more.
 
-## Features
+## 🚀 Features
 
-- 🌐 **Web Interface** - Easy-to-use browser-based interface
-- 🗺️ **Live Interactive Map** - Real-time visualization with MapLibre GL JS (WebGL-powered)
-- 📁 **Flexible Input** - Upload CSV/Excel files or enter queries manually
-- 🔄 **Smart Proxy Rotation** - Automatic rotation after 14 requests or on failure
-- 👁️ **Visible Browser** - Watch the scraping process in real-time
-- 📊 **Real-time Progress** - Live status updates and progress tracking
-- 💾 **Multiple Export Formats** - Download results as CSV or JSON
-- 🛡️ **Error Handling** - Automatic retry with CAPTCHA detection
-- 🔧 **Modular Design** - Easy to maintain and extend
-- ⚡ **Optimized Performance** - 2x faster scraping with reduced timeouts
+- ✅ **No API Key Required** - Scrape Google Maps without Google API
+- ✅ **Multiple Input Modes** - Keywords + locations or direct URLs
+- ✅ **Email Extraction** - Extract emails from business websites
+- ✅ **Smart Proxy Rotation** - Automatic rotation to avoid blocks
+- ✅ **Fast & Reliable** - Parallel scraping with Playwright
+- ✅ **Rich Data** - Names, addresses, phones, websites, ratings, reviews, coordinates
+- ✅ **Apify Integration** - Results saved to Apify Dataset
 
-## Architecture
+## 📊 Output
 
-The application consists of three layers:
+Each business includes:
 
-1. **Frontend** (HTML/CSS/JS + MapLibre GL JS) - Modern UI with live map visualization
-2. **Backend** (Flask) - API server with state management and coordination
-3. **Scraper** (Playwright) - Browser automation with proxy rotation
-
-### Technology Stack
-
-- **Frontend**: HTML5, CSS3, Vanilla JavaScript, MapLibre GL JS 3.6.2
-- **Backend**: Python 3.9+, Flask 2.x
-- **Browser Automation**: Playwright (Chromium)
-- **Data Processing**: pandas, openpyxl
-- **Mapping**: MapLibre GL JS (WebGL-powered, hardware-accelerated)
-
-## Installation
-
-### Prerequisites
-
-- Python 3.9 or higher
-- pip (Python package manager)
-
-### Step 1: Install Dependencies
-
-```bash
-pip install -r requirements.txt
+```json
+{
+  "name": "Business Name",
+  "full_address": "123 Main St, New York, NY 10001",
+  "latitude": 40.7308,
+  "longitude": -73.9973,
+  "phone": "(212) 555-1234",
+  "website": "https://example.com",
+  "email": "contact@example.com",
+  "rating": 4.5,
+  "review_count": 234,
+  "category": "Restaurant",
+  "opening_hours": "Mon-Fri: 9AM-5PM",
+  "plus_code": "8Q7X+2G New York",
+  "cid": "1234567890",
+  "url": "https://www.google.com/maps/place/...",
+  "description": "Business description...",
+  "keyword": "restaurants",
+  "zip_code": "10001"
+}
 ```
 
-### Step 2: Install Playwright Browsers
+## 🎯 Use Cases
 
-```bash
-playwright install chromium
+- **Lead Generation** - Find potential customers
+- **Market Research** - Analyze competitors
+- **Data Enrichment** - Add business details to your database
+- **Local SEO** - Track local business listings
+- **Sales Prospecting** - Build targeted contact lists
+
+## 📝 Input
+
+### Mode 1: Keyword + Location
+
+Search by keywords and locations:
+
+```json
+{
+  "mode": "keyword",
+  "keywords": ["restaurants", "coffee shops"],
+  "locations": ["10001", "New York", "Miami"],
+  "maxResultsPerQuery": 60
+}
 ```
 
-### Step 3: Configure Proxies
+This will scrape:
+- Restaurants in 10001
+- Restaurants in New York
+- Restaurants in Miami
+- Coffee shops in 10001
+- Coffee shops in New York
+- Coffee shops in Miami
 
-Add your proxies to `proxies.txt` in the following format (one per line):
+### Mode 2: Google Maps URLs
 
-```
-IP:PORT:USERNAME:PASSWORD
-```
+Provide direct Google Maps URLs:
 
-Example:
-```
-72.46.139.137:6697:myuser:mypass
-45.196.40.119:6197:myuser:mypass
-```
-
-**Important:** You need at least 1 proxy, but 10 proxies are recommended for optimal rotation.
-
-## Usage
-
-### Starting the Application
-
-1. Run the Flask server:
-
-```bash
-python app.py
+```json
+{
+  "mode": "url",
+  "urls": [
+    "https://www.google.com/maps/search/restaurants+new+york",
+    "https://www.google.com/maps/place/Business+Name/@40.7308,-73.9973,17z"
+  ]
+}
 ```
 
-2. Open your browser and navigate to:
+## ⚙️ Configuration
 
-```
-http://127.0.0.1:5000
-```
+### Proxy Options
 
-### Input Methods
+**Option 1: Apify Proxy (Recommended)**
+- Automatic proxy management
+- Residential IPs for best results
+- Additional cost applies
+- Set `useApifyProxy: true`
 
-#### Option 1: File Upload
+**Option 2: Custom Proxies**
+- Bring your own proxies
+- Format: `IP:PORT:USERNAME:PASSWORD`
+- Set `useApifyProxy: false`
+- Provide `customProxies` array
 
-1. Prepare a CSV or Excel file with the following columns:
-   - `keyword` (required) - Search term (e.g., "restaurants")
-   - `zip_code` (required) - Zip code to search in (e.g., "10001")
-   - `url` (optional) - Custom URL (leave empty if not needed)
+### Advanced Settings
 
-2. Click "Choose File" and select your file
-3. Click "Upload & Start" to begin scraping
+- **maxResultsPerQuery** (1-120): Businesses per query
+- **headless** (true/false): Run browser in headless mode
+- **extractEmails** (true/false): Extract emails from websites
+- **deduplicate** (true/false): Remove duplicate businesses
+- **rotationThreshold** (1-100): Rotate proxy after N requests
 
-**Sample files provided:**
-- `samples/sample_queries.csv` - Example CSV file
+## 💰 Cost Estimate
 
-#### Option 2: Manual Entry
+### Apify Platform Costs
+- **Compute**: ~$0.20-0.30 per 1,000 businesses
+- **Proxy** (Apify Residential): ~$0.50-0.75 per 1,000 businesses
+- **Total with Apify Proxy**: ~$0.75-1.00 per 1,000 businesses
+- **Total with Custom Proxy**: ~$0.20-0.30 per 1,000 businesses
 
-1. Fill in the keyword and zip code fields
-2. Click "Add Row" to add more queries
-3. Click "Start Scraping" to begin
+### Example Runs
+- 100 businesses: ~$0.08-0.10
+- 500 businesses: ~$0.40-0.50
+- 1,000 businesses: ~$0.75-1.00
+- 5,000 businesses: ~$3.75-5.00
+- 10,000 businesses: ~$7.50-10.00
 
-### Monitoring Progress
+### Cost Savings Tips
+- Use **custom proxies** instead of Apify proxy (save ~60%)
+- Set `extractEmails: false` if you don't need emails (faster = cheaper)
+- Use `maxResultsPerQuery: 20-40` instead of 60 (faster queries)
+- Run during off-peak hours for better proxy performance
 
-The interface displays:
-- **Status** - Current scraping state (Idle, Running, Completed, Stopped)
-- **Current Query** - The query being processed
-- **Current Proxy** - Active proxy IP and port
-- **Processed** - Number of queries completed
-- **Successful** - Number of successful queries
-- **Failed** - Number of failed queries
-- **Progress Bar** - Visual progress indicator
+*Actual costs vary based on proxy usage, scraping speed, and Apify pricing*
 
-### Downloading Results
+## 🔧 Tips for Best Results
 
-Once scraping is complete:
-1. The "Results" section will appear
-2. Click "Download CSV" or "Download JSON" to export data
+### 1. Use Specific Keywords
+❌ Bad: "business"
+✅ Good: "italian restaurants", "plumbers near me"
 
-### Stopping Scraping
+### 2. Use Precise Locations
+❌ Bad: "USA"
+✅ Good: "10001", "Miami, FL", "Brooklyn, NY"
 
-Click the "Stop Scraping" button to halt the process at any time.
+### 3. Optimize Max Results
+- Start with 20-60 results per query
+- Increase if you need more data
+- Higher numbers = longer runtime
 
-## Proxy Rotation Logic
+### 4. Use Apify Proxy
+- More reliable than custom proxies
+- Residential IPs avoid blocks
+- Worth the extra cost
 
-The scraper uses intelligent proxy rotation to avoid detection:
+### 5. Enable Email Extraction
+- Adds valuable contact data
+- Slightly slower but worth it
+- Great for lead generation
 
-- **Sequential Rotation** - Cycles through all proxies in order
-- **Threshold-Based** - Rotates after every 14 requests
-- **Failure-Triggered** - Immediately switches on CAPTCHA or timeout
-- **Automatic Recovery** - Retries failed queries with next proxy (up to 3 attempts)
+## 📈 Performance
 
-## Extracted Data Fields
+- **Speed**: 10-15 seconds per query
+- **Throughput**: 4-6 queries per minute
+- **Results**: Up to 120 businesses per query
+- **Success Rate**: 95%+ with Apify proxy
 
-For each business, the scraper collects:
+## 🛡️ Anti-Detection Features
 
-- `name` - Business name
-- `address` - Full address
-- `phone` - Phone number
-- `website` - Website URL
-- `rating` - Star rating (0-5)
-- `review_count` - Number of reviews
-- `category` - Business category
-- `keyword` - Original search keyword
-- `zip_code` - Original search zip code
+- Smart proxy rotation
+- Random delays between requests
+- Browser fingerprint randomization
+- CAPTCHA detection and handling
+- Automatic retry on failures
 
-## Configuration
+## 🚨 Limitations
 
-Edit `config.py` to customize settings:
+- Google Maps rate limits apply
+- Some businesses may have incomplete data
+- Email extraction requires visiting websites (slower)
+- Maximum 120 results per query (Google Maps limit)
 
-```python
-# Proxy settings
-PROXY_FILE = 'proxies.txt'
-ROTATION_THRESHOLD = 14  # Rotate after N requests
+## 📞 Support
 
-# Timeout settings
-REQUEST_TIMEOUT = 30  # seconds
-PAGE_LOAD_TIMEOUT = 60  # seconds
+Need help? Contact us:
+- Email: support@yourdomain.com
+- Documentation: Full docs in GitHub repo
+- Issues: Report bugs on GitHub
 
-# Browser settings
-HEADLESS = False  # Set to True for headless mode
-VIEWPORT_WIDTH = 1920
-VIEWPORT_HEIGHT = 1080
-```
+## 🔐 Privacy & Legal
 
-## API Endpoints
+- This actor scrapes publicly available data
+- Respect robots.txt and terms of service
+- Use responsibly and ethically
+- Don't scrape personal data without consent
 
-The Flask backend provides the following REST API:
+## 🎓 Examples
 
-- `GET /` - Serve main web interface
-- `POST /upload` - Upload and parse CSV/Excel file
-- `POST /start` - Start scraping with manual queries
-- `GET /status` - Get current scraping status (polled every 2 seconds)
-- `POST /stop` - Stop scraping operation
-- `GET /download/csv` - Download results as CSV
-- `GET /download/json` - Download results as JSON
-
-## Project Structure
-
-```
-google-maps-scraper/
-├── app.py                      # Flask application entry point
-├── config.py                   # Configuration settings
-├── proxies.txt                 # Proxy list (not in git)
-├── requirements.txt            # Python dependencies
-├── Procfile                    # Deployment configuration
-├── runtime.txt                 # Python version for deployment
-├── render.yaml                 # Render deployment config
-├── README.md                   # This file
-├── CHANGELOG.md                # Version history
-├── QUICK_START.md              # Quick start guide
-├── static/
-│   ├── css/
-│   │   └── style.css          # Frontend styles
-│   └── js/
-│       └── app.js             # Frontend logic with MapLibre
-├── templates/
-│   ├── index.html             # Main web interface
-│   └── dashboard.html         # Proxy health dashboard
-├── modules/
-│   ├── __init__.py
-│   ├── proxy_manager.py       # Proxy rotation logic
-│   ├── scraper.py             # Playwright scraper
-│   ├── file_parser.py         # CSV/Excel parser
-│   ├── data_extractor.py      # Data extraction utilities
-│   └── utils.py               # Utility functions
-├── docs/                       # Documentation
-│   ├── API_DOCUMENTATION.md
-│   ├── BULK_UPLOAD_GUIDE.md
-│   ├── PROXY_SETUP_GUIDE.md
-│   ├── RENDER_DEPLOYMENT.md
-│   └── TROUBLESHOOTING.md
-├── tests/                      # Test files
-│   ├── test_integration.py
-│   ├── test_parallel_scraper.py
-│   └── run_performance_test.py
-├── samples/                    # Sample files
-│   └── sample_queries.csv
-├── output/                     # Scraped results (CSV/JSON)
-└── uploads/                    # Temporary file storage
+### Example 1: Local Restaurants
+```json
+{
+  "mode": "keyword",
+  "keywords": ["restaurants"],
+  "locations": ["New York, NY"],
+  "maxResultsPerQuery": 60,
+  "useApifyProxy": true,
+  "extractEmails": true
+}
 ```
 
-## Testing
-
-Run the integration tests to verify all components:
-
-```bash
-python tests/test_integration.py
+### Example 2: Multiple Cities
+```json
+{
+  "mode": "keyword",
+  "keywords": ["coffee shops", "cafes"],
+  "locations": ["10001", "90210", "33101"],
+  "maxResultsPerQuery": 40,
+  "useApifyProxy": true
+}
 ```
 
-Expected output:
-```
-✓ ProxyManager tests passed!
-✓ FileParser tests passed!
-✓ DataExtractor tests passed!
-✓ GoogleMapsScraper initialization tests passed!
-✓ All components integrated successfully!
-Total: 5/5 tests passed
-```
-
-Additional tests:
-- `tests/test_parallel_scraper.py` - Parallel scraping tests
-- `tests/run_performance_test.py` - Performance benchmarks
-
-## Troubleshooting
-
-### Issue: "No proxies loaded"
-**Solution:** Ensure `proxies.txt` exists and contains valid proxies in the correct format.
-
-### Issue: "Playwright browsers not installed"
-**Solution:** Run `playwright install chromium`
-
-### Issue: "CAPTCHA detected"
-**Solution:** The system automatically rotates proxies on CAPTCHA. If it persists:
-- Add more proxies to your pool
-- Reduce the rotation threshold in `config.py`
-- Increase delays between requests
-
-### Issue: "Browser fails to initialize"
-**Solution:** 
-- Check proxy credentials are correct
-- Verify proxies are working (test with curl or browser)
-- Try running in headless mode: set `HEADLESS = True` in `config.py`
-
-### Issue: "No results found"
-**Solution:**
-- Verify the keyword and zip code are valid
-- Check if Google Maps has results for that query
-- Review logs in `scraper.log` for details
-
-## Logging
-
-Logs are written to `scraper.log` with rotation (max 10MB per file, 3 backups).
-
-View logs:
-```bash
-# Windows
-type scraper.log
-
-# Linux/Mac
-tail -f scraper.log
+### Example 3: Specific URLs
+```json
+{
+  "mode": "url",
+  "urls": [
+    "https://www.google.com/maps/search/plumbers+miami",
+    "https://www.google.com/maps/search/dentists+chicago"
+  ],
+  "maxResultsPerQuery": 60,
+  "useApifyProxy": true
+}
 ```
 
-## Performance
+## 🔄 Updates
 
-- **Average time per query:** 10-15 seconds
-- **Proxy rotation overhead:** ~2 seconds (browser restart)
-- **Expected throughput:** 4-6 queries per minute
-- **Results per query:** Up to 20 businesses
+- **v1.0.0** - Initial release
+- Regular updates for Google Maps changes
+- New features based on user feedback
 
-## Security Considerations
+## ⭐ Rate This Actor
 
-- ⚠️ **Never commit `proxies.txt`** - It's in `.gitignore` by default
-- 🔒 Use environment variables for sensitive configuration in production
-- 🛡️ File uploads are limited to 5MB
-- ✅ All user inputs are validated before processing
-
-## Documentation
-
-- **[Quick Start Guide](QUICK_START.md)** - Get started in 5 minutes
-- **[API Documentation](docs/API_DOCUMENTATION.md)** - REST API reference
-- **[Bulk Upload Guide](docs/BULK_UPLOAD_GUIDE.md)** - File upload instructions
-- **[Proxy Setup Guide](docs/PROXY_SETUP_GUIDE.md)** - Proxy configuration
-- **[Deployment Guide](docs/RENDER_DEPLOYMENT.md)** - Deploy to Render
-- **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
-- **[Changelog](CHANGELOG.md)** - Version history
-
-## License
-
-This project is for educational purposes. Please respect Google's Terms of Service and use responsibly.
-
-## Deployment
-
-Ready to deploy? See the [Deployment Guide](docs/RENDER_DEPLOYMENT.md) for instructions on deploying to Render or other platforms.
-
-**Pre-deployment checklist:**
-- [ ] All tests passing (`python tests/test_integration.py`)
-- [ ] Proxies configured in `proxies.txt`
-- [ ] Environment variables set (if using)
-- [ ] `HEADLESS = True` in `config.py` for production
-- [ ] Review security settings in `config.py`
-
-## Support
-
-For issues or questions:
-1. Check the [Troubleshooting Guide](docs/TROUBLESHOOTING.md)
-2. Review logs in `scraper.log`
-3. Run integration tests: `python tests/test_integration.py`
-
-## Credits
-
-Built with:
-- [Flask](https://flask.palletsprojects.com/) - Web framework
-- [Playwright](https://playwright.dev/) - Browser automation
-- [pandas](https://pandas.pydata.org/) - Data processing
-- [openpyxl](https://openpyxl.readthedocs.io/) - Excel file handling
+If you find this actor useful, please rate it 5 stars! Your feedback helps us improve.
 
 ---
 
-**Happy Scraping! 🚀**
+**Built with ❤️ using Playwright and Apify SDK**
