@@ -331,7 +331,7 @@ class GoogleMapsScraper:
             page.set_default_timeout(20000)  # Reduced from 30s to 20s
             
             # Navigate to business page - use domcontentloaded for speed
-            await page.goto(business_url, timeout=20000, wait_until='domcontentloaded')
+            await page.goto(business_url, timeout=45000, wait_until='domcontentloaded')
             
             # Smart wait: Wait for business name OR timeout quickly
             try:
