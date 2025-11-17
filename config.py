@@ -2,17 +2,27 @@ import os
 
 
 class Config:
+    """
+    Application configuration settings.
+    
+    For production deployment:
+    - Set HEADLESS = True
+    - Set SECRET_KEY via environment variable
+    - Adjust timeouts based on your needs
+    - Configure proxy settings
+    """
+    
     # Flask settings
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
     UPLOAD_FOLDER = 'uploads'
-    MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5MB
+    MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5MB max file upload
     
     # Scraper settings
     PROXY_FILE = 'proxies.txt'
-    ROTATION_THRESHOLD = 14
-    REQUEST_TIMEOUT = 30
-    PAGE_LOAD_TIMEOUT = 60
-    HEADLESS = False  # Set to False to see browser
+    ROTATION_THRESHOLD = 14  # Rotate proxy after N requests
+    REQUEST_TIMEOUT = 30  # Seconds to wait for page elements
+    PAGE_LOAD_TIMEOUT = 60  # Seconds to wait for page load
+    HEADLESS = False  # Set to True for production (no visible browser)
     MIN_PROXY_COUNT = 1  # Minimum proxies required to start
     
     # Parallel scraping settings

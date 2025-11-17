@@ -95,8 +95,7 @@ http://127.0.0.1:5000
 3. Click "Upload & Start" to begin scraping
 
 **Sample files provided:**
-- `sample_queries.csv` - Example CSV file
-- `sample_queries.xlsx` - Example Excel file
+- `samples/sample_queries.csv` - Example CSV file
 
 #### Option 2: Manual Entry
 
@@ -187,23 +186,40 @@ google-maps-scraper/
 ├── config.py                   # Configuration settings
 ├── proxies.txt                 # Proxy list (not in git)
 ├── requirements.txt            # Python dependencies
+├── Procfile                    # Deployment configuration
+├── runtime.txt                 # Python version for deployment
+├── render.yaml                 # Render deployment config
 ├── README.md                   # This file
-├── sample_queries.csv          # Example CSV file
-├── sample_queries.xlsx         # Example Excel file
-├── test_integration.py         # Integration tests
+├── CHANGELOG.md                # Version history
+├── QUICK_START.md              # Quick start guide
 ├── static/
 │   ├── css/
 │   │   └── style.css          # Frontend styles
 │   └── js/
-│       └── app.js             # Frontend logic
+│       └── app.js             # Frontend logic with MapLibre
 ├── templates/
-│   └── index.html             # Main web interface
+│   ├── index.html             # Main web interface
+│   └── dashboard.html         # Proxy health dashboard
 ├── modules/
 │   ├── __init__.py
 │   ├── proxy_manager.py       # Proxy rotation logic
 │   ├── scraper.py             # Playwright scraper
 │   ├── file_parser.py         # CSV/Excel parser
-│   └── data_extractor.py      # Data extraction utilities
+│   ├── data_extractor.py      # Data extraction utilities
+│   └── utils.py               # Utility functions
+├── docs/                       # Documentation
+│   ├── API_DOCUMENTATION.md
+│   ├── BULK_UPLOAD_GUIDE.md
+│   ├── PROXY_SETUP_GUIDE.md
+│   ├── RENDER_DEPLOYMENT.md
+│   └── TROUBLESHOOTING.md
+├── tests/                      # Test files
+│   ├── test_integration.py
+│   ├── test_parallel_scraper.py
+│   └── run_performance_test.py
+├── samples/                    # Sample files
+│   └── sample_queries.csv
+├── output/                     # Scraped results (CSV/JSON)
 └── uploads/                    # Temporary file storage
 ```
 
@@ -212,7 +228,7 @@ google-maps-scraper/
 Run the integration tests to verify all components:
 
 ```bash
-python test_integration.py
+python tests/test_integration.py
 ```
 
 Expected output:
@@ -224,6 +240,10 @@ Expected output:
 ✓ All components integrated successfully!
 Total: 5/5 tests passed
 ```
+
+Additional tests:
+- `tests/test_parallel_scraper.py` - Parallel scraping tests
+- `tests/run_performance_test.py` - Performance benchmarks
 
 ## Troubleshooting
 
@@ -278,26 +298,37 @@ tail -f scraper.log
 - 🛡️ File uploads are limited to 5MB
 - ✅ All user inputs are validated before processing
 
-## Future Enhancements
+## Documentation
 
-- [ ] Parallel scraping with multiple browsers
-- [ ] Export to Apify actor format
-- [ ] Advanced proxy health monitoring
-- [ ] Result caching to avoid re-scraping
-- [ ] Scheduled scraping with cron-like functionality
-- [ ] RESTful API mode for programmatic access
-- [ ] Database storage for results history
+- **[Quick Start Guide](QUICK_START.md)** - Get started in 5 minutes
+- **[API Documentation](docs/API_DOCUMENTATION.md)** - REST API reference
+- **[Bulk Upload Guide](docs/BULK_UPLOAD_GUIDE.md)** - File upload instructions
+- **[Proxy Setup Guide](docs/PROXY_SETUP_GUIDE.md)** - Proxy configuration
+- **[Deployment Guide](docs/RENDER_DEPLOYMENT.md)** - Deploy to Render
+- **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Changelog](CHANGELOG.md)** - Version history
 
 ## License
 
 This project is for educational purposes. Please respect Google's Terms of Service and use responsibly.
 
+## Deployment
+
+Ready to deploy? See the [Deployment Guide](docs/RENDER_DEPLOYMENT.md) for instructions on deploying to Render or other platforms.
+
+**Pre-deployment checklist:**
+- [ ] All tests passing (`python tests/test_integration.py`)
+- [ ] Proxies configured in `proxies.txt`
+- [ ] Environment variables set (if using)
+- [ ] `HEADLESS = True` in `config.py` for production
+- [ ] Review security settings in `config.py`
+
 ## Support
 
 For issues or questions:
-1. Check the troubleshooting section above
+1. Check the [Troubleshooting Guide](docs/TROUBLESHOOTING.md)
 2. Review logs in `scraper.log`
-3. Run integration tests: `python test_integration.py`
+3. Run integration tests: `python tests/test_integration.py`
 
 ## Credits
 

@@ -22,18 +22,28 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+pip-log.txt
+pip-delete-this-directory.txt
 
 # Output files
 output/
 *.csv
 *.xlsx
+*.json
 
 # Uploads
-uploads/
+uploads/*
+!uploads/.gitkeep
 
 # Logs
 *.log
-scraper.log
+scraper.log*
+
+# Sensitive data
+proxies.txt
+.env
+*.pem
+*.key
 
 # IDE
 .vscode/
@@ -41,7 +51,19 @@ scraper.log
 *.swp
 *.swo
 *~
+.project
+.pydevproject
 
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Playwright
+playwright/.auth/
