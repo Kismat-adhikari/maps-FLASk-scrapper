@@ -1,0 +1,57 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+tests/
+test_*.py
+*_test.py
+
+# Documentation (not needed in container)
+docs/
+*.md
+!README_APIFY.md
+
+# Output files
+output/
+uploads/
+*.csv
+*.xlsx
+*.json
+*.log
+
+# Samples
+samples/
+
+# Flask-specific (not needed for Apify)
+templates/
+static/
+app.py
+
+# Temporary files
+temp_proxies.txt
+.apify/
+test_*.json

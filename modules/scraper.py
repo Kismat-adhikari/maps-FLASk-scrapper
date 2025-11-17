@@ -39,12 +39,12 @@ class GoogleMapsScraper:
         self.request_timeout = 15000  # 15 seconds (reduced from 30)
         self.page_load_timeout = 30000  # 30 seconds (reduced from 60)
     
-    async def initialize_browser(self, proxy: Dict) -> bool:
+    async def initialize_browser(self, proxy: Dict = None) -> bool:
         """
         Initialize Playwright browser with proxy configuration.
         
         Args:
-            proxy: Proxy dictionary with server, username, password
+            proxy: Proxy dictionary with server, username, password (optional for Apify proxy)
             
         Returns:
             True if successful, False otherwise
@@ -57,17 +57,29 @@ class GoogleMapsScraper:
             if self.browser:
                 await self.close_browser()
             
-            self.logger.info(f"Launching browser with proxy: {proxy.get('ip', 'unknown')}")
+            # Prepare launch options
+            launch_options = {
+                'headless': self.headless
+            }
             
-            # Launch browser with proxy
-            self.browser = await self.playwright.chromium.launch(
-                headless=self.headless,
-                proxy={
+            # Add proxy configuration
+            if self.use_apify_proxy:
+                # Use Apify proxy (will be configured via environment)
+                self.logger.info("Launching browser with Apify proxy")
+                # Apify proxy is handled automatically by the platform
+            elif proxy:
+                # Use custom proxy
+                self.logger.info(f"Launching browser with custom proxy: {proxy.get('ip', 'unknown')}")
+                launch_options['proxy'] = {
                     'server': proxy['server'],
                     'username': proxy['username'],
                     'password': proxy['password']
                 }
-            )
+            else:
+                self.logger.info("Launching browser without proxy")
+            
+            # Launch browser
+            self.browser = await self.playwright.chromium.launch(**launch_options)
             
             # Create new page with viewport settings
             self.page = await self.browser.new_page(
@@ -495,39 +507,44 @@ class GoogleMapsScraper:
         
         self.logger.info(f"Starting scrape for: {keyword} in {zip_code} (attempt {retry_count + 1}/{max_retries + 1})")
         
-        # Get current proxy
-        proxy = self.proxy_manager.get_next_proxy()
-        if not proxy:
-            self.logger.error("No proxy available")
-            return []
+        # Get current proxy (if using custom proxies)
+        proxy = None
+        if self.proxy_manager:
+            proxy = self.proxy_manager.get_next_proxy()
+            if not proxy:
+                self.logger.error("No proxy available")
+                return []
         
         try:
-            # Initialize browser with proxy
+            # Initialize browser with proxy (or Apify proxy)
             success = await self.initialize_browser(proxy)
             if not success:
                 self.logger.error("Failed to initialize browser")
-                self.proxy_manager.mark_failure(proxy)
+                if self.proxy_manager and proxy:
+                    self.proxy_manager.mark_failure(proxy)
                 
                 # Retry with next proxy if retries available
                 if retry_count < max_retries:
                     self.logger.info(f"Retrying with next proxy...")
-                    return await self.scrape_query(query, csv_callback, retry_count + 1, max_retries)
+                    return await self.scrape_query(query, csv_callback, retry_count + 1, max_retries, max_results)
                 return []
             
-            # Increment request counter
-            self.proxy_manager.increment_counter()
+            # Increment request counter (if using custom proxies)
+            if self.proxy_manager:
+                self.proxy_manager.increment_counter()
             
             # Perform search
             search_success = await self.search_google_maps(keyword, zip_code)
             if not search_success:
                 self.logger.error("Search failed - CAPTCHA or network error")
-                self.proxy_manager.mark_failure(proxy)
+                if self.proxy_manager and proxy:
+                    self.proxy_manager.mark_failure(proxy)
                 
                 # Retry with next proxy if retries available
                 if retry_count < max_retries:
                     self.logger.info(f"Retrying with next proxy...")
                     await self.close_browser()
-                    return await self.scrape_query(query, csv_callback, retry_count + 1, max_retries)
+                    return await self.scrape_query(query, csv_callback, retry_count + 1, max_retries, max_results)
                 return []
             
             # Extract business data with incremental saving (PARALLEL MODE)
@@ -546,7 +563,8 @@ class GoogleMapsScraper:
             
         except Exception as e:
             self.logger.error(f"Unexpected error during scrape: {e}")
-            self.proxy_manager.mark_failure(proxy)
+            if self.proxy_manager and proxy:
+                self.proxy_manager.mark_failure(proxy)
             
             # Attempt to restart browser on crash
             try:
@@ -576,26 +594,30 @@ class GoogleMapsScraper:
         """
         self.logger.info(f"Starting scrape from URL: {url} (attempt {retry_count + 1}/{max_retries + 1})")
         
-        # Get current proxy
-        proxy = self.proxy_manager.get_next_proxy()
-        if not proxy:
-            self.logger.error("No proxy available")
-            return []
+        # Get current proxy (if using custom proxies)
+        proxy = None
+        if self.proxy_manager:
+            proxy = self.proxy_manager.get_next_proxy()
+            if not proxy:
+                self.logger.error("No proxy available")
+                return []
         
         try:
-            # Initialize browser with proxy
+            # Initialize browser with proxy (or Apify proxy)
             success = await self.initialize_browser(proxy)
             if not success:
                 self.logger.error("Failed to initialize browser")
-                self.proxy_manager.mark_failure(proxy)
+                if self.proxy_manager and proxy:
+                    self.proxy_manager.mark_failure(proxy)
                 
                 if retry_count < max_retries:
                     self.logger.info(f"Retrying with next proxy...")
                     return await self.scrape_url(url, csv_callback, retry_count + 1, max_retries)
                 return []
             
-            # Increment request counter
-            self.proxy_manager.increment_counter()
+            # Increment request counter (if using custom proxies)
+            if self.proxy_manager:
+                self.proxy_manager.increment_counter()
             
             # Navigate to URL
             try:
@@ -603,7 +625,8 @@ class GoogleMapsScraper:
                 await asyncio.sleep(1.5)  # Optimized from 3 seconds
             except Exception as e:
                 self.logger.error(f"Failed to load URL: {e}")
-                self.proxy_manager.mark_failure(proxy)
+                if self.proxy_manager and proxy:
+                    self.proxy_manager.mark_failure(proxy)
                 
                 if retry_count < max_retries:
                     self.logger.info(f"Retrying with next proxy...")
@@ -614,7 +637,8 @@ class GoogleMapsScraper:
             # Check for CAPTCHA
             if await self._detect_captcha():
                 self.logger.warning("CAPTCHA detected - marking proxy as failed")
-                self.proxy_manager.mark_failure(proxy)
+                if self.proxy_manager and proxy:
+                    self.proxy_manager.mark_failure(proxy)
                 
                 if retry_count < max_retries:
                     self.logger.info(f"Retrying with next proxy...")
@@ -659,7 +683,8 @@ class GoogleMapsScraper:
             
         except Exception as e:
             self.logger.error(f"Unexpected error during URL scrape: {e}")
-            self.proxy_manager.mark_failure(proxy)
+            if self.proxy_manager and proxy:
+                self.proxy_manager.mark_failure(proxy)
             
             try:
                 await self.close_browser()

@@ -1,0 +1,50 @@
+# Apify actor ignore file
+# Files and directories listed here will not be uploaded to Apify
+
+# Git
+.git/
+.gitignore
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Tests
+tests/
+test_*.py
+
+# Documentation (except Apify README)
+docs/
+*.md
+!README_APIFY.md
+
+# Output
+output/
+uploads/
+*.csv
+*.xlsx
+*.log
+
+# Flask app (not needed)
+templates/
+static/
+app.py
+
+# Samples
+samples/
+
+# Temporary
+temp_proxies.txt
+.apify/

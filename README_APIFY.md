@@ -110,16 +110,25 @@ Provide direct Google Maps URLs:
 ## 💰 Cost Estimate
 
 ### Apify Platform Costs
-- **Compute**: ~$0.25 per 1,000 businesses
-- **Proxy** (if using Apify): ~$0.50 per 1,000 businesses
-- **Total**: ~$0.75 per 1,000 businesses
+- **Compute**: ~$0.20-0.30 per 1,000 businesses
+- **Proxy** (Apify Residential): ~$0.50-0.75 per 1,000 businesses
+- **Total with Apify Proxy**: ~$0.75-1.00 per 1,000 businesses
+- **Total with Custom Proxy**: ~$0.20-0.30 per 1,000 businesses
 
 ### Example Runs
-- 100 businesses: ~$0.08
-- 1,000 businesses: ~$0.75
-- 10,000 businesses: ~$7.50
+- 100 businesses: ~$0.08-0.10
+- 500 businesses: ~$0.40-0.50
+- 1,000 businesses: ~$0.75-1.00
+- 5,000 businesses: ~$3.75-5.00
+- 10,000 businesses: ~$7.50-10.00
 
-*Costs vary based on proxy usage and scraping speed*
+### Cost Savings Tips
+- Use **custom proxies** instead of Apify proxy (save ~60%)
+- Set `extractEmails: false` if you don't need emails (faster = cheaper)
+- Use `maxResultsPerQuery: 20-40` instead of 60 (faster queries)
+- Run during off-peak hours for better proxy performance
+
+*Actual costs vary based on proxy usage, scraping speed, and Apify pricing*
 
 ## 🔧 Tips for Best Results
 
