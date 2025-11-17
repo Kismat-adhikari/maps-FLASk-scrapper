@@ -64,9 +64,27 @@ class GoogleMapsScraper:
             
             # Add proxy configuration
             if self.use_apify_proxy:
-                # Use Apify proxy (will be configured via environment)
+                # Use Apify proxy
                 self.logger.info("Launching browser with Apify proxy")
-                # Apify proxy is handled automatically by the platform
+                # Get Apify proxy URL from config
+                proxy_groups = self.apify_proxy_config.get('apifyProxyGroups', ['RESIDENTIAL'])
+                proxy_country = self.apify_proxy_config.get('apifyProxyCountry', '')
+                
+                # Build Apify proxy URL
+                import os
+                apify_proxy_password = os.getenv('APIFY_PROXY_PASSWORD', '')
+                if apify_proxy_password:
+                    # Format: http://groups-{GROUPS},country-{COUNTRY}:{PASSWORD}@proxy.apify.com:8000
+                    groups_str = '+'.join(proxy_groups)
+                    proxy_url = f"http://groups-{groups_str}"
+                    if proxy_country:
+                        proxy_url += f",country-{proxy_country}"
+                    proxy_url += f":{apify_proxy_password}@proxy.apify.com:8000"
+                    
+                    launch_options['proxy'] = {'server': proxy_url}
+                    self.logger.info(f"Configured Apify proxy with groups: {groups_str}")
+                else:
+                    self.logger.warning("APIFY_PROXY_PASSWORD not found, proxy may not work")
             elif proxy:
                 # Use custom proxy
                 self.logger.info(f"Launching browser with custom proxy: {proxy.get('ip', 'unknown')}")

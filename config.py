@@ -26,8 +26,8 @@ class Config:
     MIN_PROXY_COUNT = 1  # Minimum proxies required to start
     
     # Parallel scraping settings
-    PARALLEL_TABS = 5  # Number of tabs to open simultaneously (3-5 recommended for stability)
-    MAX_CONCURRENT_BUSINESSES = 5  # Max businesses to scrape at once
+    PARALLEL_TABS = 3  # Number of tabs to open simultaneously (3 recommended for Apify stability)
+    MAX_CONCURRENT_BUSINESSES = 3  # Max businesses to scrape at once
     
     # Browser settings
     VIEWPORT_WIDTH = 1920
