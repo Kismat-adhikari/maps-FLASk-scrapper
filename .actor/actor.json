@@ -1,0 +1,73 @@
+{
+  "actorSpecification": 1,
+  "name": "google-maps-scraper",
+  "title": "Google Maps Scraper - No API Key Required",
+  "description": "Scrape business data from Google Maps without API keys. Extract names, addresses, phones, emails, ratings, and more. Fast, reliable, and easy to use.",
+  "version": "1.0",
+  "meta": {
+    "templateId": "python-playwright"
+  },
+  "input": "./INPUT_SCHEMA.json",
+  "dockerfile": "./Dockerfile",
+  "readme": "./README_APIFY.md",
+  "storages": {
+    "dataset": {
+      "actorSpecification": 1,
+      "title": "Scraped Businesses",
+      "views": {
+        "overview": {
+          "title": "Overview",
+          "transformation": {
+            "fields": [
+              "name",
+              "full_address",
+              "phone",
+              "website",
+              "email",
+              "rating",
+              "review_count",
+              "category"
+            ]
+          },
+          "display": {
+            "component": "table",
+            "properties": {
+              "name": {
+                "label": "Business Name",
+                "format": "text"
+              },
+              "full_address": {
+                "label": "Address",
+                "format": "text"
+              },
+              "phone": {
+                "label": "Phone",
+                "format": "text"
+              },
+              "website": {
+                "label": "Website",
+                "format": "link"
+              },
+              "email": {
+                "label": "Email",
+                "format": "text"
+              },
+              "rating": {
+                "label": "Rating",
+                "format": "number"
+              },
+              "review_count": {
+                "label": "Reviews",
+                "format": "number"
+              },
+              "category": {
+                "label": "Category",
+                "format": "text"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
