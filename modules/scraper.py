@@ -382,7 +382,7 @@ class GoogleMapsScraper:
                 except:
                     pass
     
-    async def extract_business_data_parallel(self, csv_callback=None, max_concurrent=3) -> List[Dict]:
+    async def extract_business_data_parallel(self, csv_callback=None, max_concurrent=3, max_results=60) -> List[Dict]:
         """
         Extract business data using parallel tabs for faster scraping.
         
@@ -410,10 +410,6 @@ class GoogleMapsScraper:
             result_links = await self.page.locator('a[href*="/maps/place/"]').all()
             self.logger.info(f"Found {len(result_links)} business results")
             
-            # Limit to 100 results (increased for broader coverage)
-            max_results = 100
-            result_links = result_links[:max_results]
-            
             # Extract URLs
             business_urls = []
             for link in result_links:
@@ -421,10 +417,13 @@ class GoogleMapsScraper:
                     href = await link.get_attribute('href')
                     if href and href.startswith('http'):
                         business_urls.append(href)
+                        # Stop when we reach max_results
+                        if len(business_urls) >= max_results:
+                            break
                 except:
                     continue
             
-            self.logger.info(f"Collected {len(business_urls)} business URLs")
+            self.logger.info(f"Collected {len(business_urls)} business URLs (limited to {max_results})")
             self.logger.info(f"🚀 PARALLEL scraping: {max_concurrent} tabs at once (optimized for Apify)")
             
             # Process businesses in batches
@@ -564,7 +563,7 @@ class GoogleMapsScraper:
             # Extract business data with incremental saving (PARALLEL MODE)
             from config import Config
             max_concurrent = getattr(Config, 'PARALLEL_TABS', 5)
-            businesses = await self.extract_business_data_parallel(csv_callback, max_concurrent)
+            businesses = await self.extract_business_data_parallel(csv_callback, max_concurrent, max_results)
             
             # Add query context to each business
             for business in businesses:
