@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Maps Scraper - Premium Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3), transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(138, 43, 226, 0.3), transparent 50%);
+            pointer-events: none;
+            animation: gradientShift 15s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            animation: fadeInDown 0.8s ease;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            display: inline-block;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .header h1 {
+            font-size: 48px;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 10px;
+            text-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 18px;
+            color: rgba(255,255,255,0.9);
+            font-weight: 400;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            animation: fadeInUp 0.8s ease;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 70px rgba(0,0,0,0.25);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            color: #666;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .tab:hover {
+            color: #667eea;
+        }
+
+        .tab.active {
+            color: #667eea;
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: scaleX(0);
+            }
+            to {
+                transform: scaleX(1);
+            }
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 16px 20px;
+            font-size: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 18px;
+            font-size: 18px;
+            font-weight: 700;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-primary:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 25px;
+            border-radius: 16px;
+            text-align: center;
+            transition: all 0.3s ease;
+            animation: scaleIn 0.5s ease;
+        }
+
+        @keyframes scaleIn {
+            from {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px) scale(1.05);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: 800;
+            color: #1a1a1a;
+        }
+
+        .activity-log {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: #00ff00;
+            max-height: 200px;
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+
+        .activity-log::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .activity-log::-webkit-scrollbar-track {
+            background: #2a2a2a;
+        }
+
+        .activity-log::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            animation: logSlide 0.3s ease;
+        }
+
+        @keyframes logSlide {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 10px;
+        }
+
+        .results-table th {
+            text-align: left;
+            padding: 15px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #666;
+            font-weight: 700;
+        }
+
+        .results-table td {
+            padding: 20px 15px;
+            background: white;
+            border-top: 1px solid #f0f0f0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .results-table tr {
+            transition: all 0.3s ease;
+            animation: tableRow 0.5s ease;
+        }
+
+        @keyframes tableRow {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .results-table tbody tr:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .results-table td:first-child {
+            border-left: 1px solid #f0f0f0;
+            border-radius: 12px 0 0 12px;
+        }
+
+        .results-table td:last-child {
+            border-right: 1px solid #f0f0f0;
+            border-radius: 0 12px 12px 0;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .rating {
+            color: #ffa000;
+            font-weight: 600;
+        }
+
+        .link {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .link:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .btn-download {
+            padding: 14px 28px;
+            font-size: 16px;
+            font-weight: 700;
+            color: white;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-download:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(56, 239, 125, 0.3);
+        }
+
+        .completion-screen {
+            text-align: center;
+            padding: 60px 20px;
+            display: none;
+        }
+
+        .completion-screen.active {
+            display: block;
+            animation: fadeInScale 0.5s ease;
+        }
+
+        @keyframes fadeInScale {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .checkmark {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 30px;
+            animation: checkmarkPop 0.5s ease;
+        }
+
+        @keyframes checkmarkPop {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .checkmark::after {
+            content: '✓';
+            font-size: 60px;
+            color: white;
+            font-weight: bold;
+        }
+
+        .completion-title {
+            font-size: 36px;
+            font-weight: 800;
+            color: #1a1a1a;
+            margin-bottom: 10px;
+        }
+
+        .completion-text {
+            font-size: 18px;
+            color: #666;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .map-container {
+            width: 100%;
+            height: 300px;
+            background: #e8eaf6;
+            border-radius: 12px;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .map-grid {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                repeating-linear-gradient(0deg, rgba(102, 126, 234, 0.1) 0px, rgba(102, 126, 234, 0.1) 1px, transparent 1px, transparent 20px),
+                repeating-linear-gradient(90deg, rgba(102, 126, 234, 0.1) 0px, rgba(102, 126, 234, 0.1) 1px, transparent 1px, transparent 20px);
+        }
+
+        .map-pin {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            animation: pinDrop 0.6s ease, pinBounce 2s ease-in-out infinite;
+        }
+
+        @keyframes pinDrop {
+            0% {
+                transform: translateY(-100px) scale(0);
+                opacity: 0;
+            }
+            50% {
+                transform: translateY(10px) scale(1.2);
+            }
+            100% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes pinBounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+
+        .map-label {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            color: #667eea;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-icon">📍</div>
+            <h1>Google Maps Scraper</h1>
+            <p>Extract business data from Google Maps without API keys</p>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">🔍 Search Configuration</h2>
+            <div class="tabs">
+                <button class="tab active">Keyword Search</button>
+                <button class="tab">URL Input</button>
+                <button class="tab">File Upload</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Keyword</label>
+                <input type="text" class="form-input" id="keyword" placeholder="e.g., Cafe, Restaurant, Hotel" value="Cafe">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Location</label>
+                <input type="text" class="form-input" id="location" placeholder="e.g., New York, London" value="New York">
+            </div>
+            <button class="btn-primary" onclick="startScraping()">🚀 Start Scraping</button>
+        </div>
+
+        <div class="card hidden" id="statusCard">
+            <h2 class="card-title">⚡ Scraping Status</h2>
+            <div>
+                <span class="status-badge" id="statusText">Currently Scraping: Cafe - New York</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+            <div style="text-align: right; color: #666; font-weight: 600; margin-bottom: 20px;">
+                <span id="progressText">0/28</span>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Active Proxy</div>
+                    <div class="stat-value" style="font-size: 20px;">72.46.xx.xx:xxxx</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);">
+                    <div class="stat-label">Scraped</div>
+                    <div class="stat-value" id="scrapedCount">0</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);">
+                    <div class="stat-label">Failed</div>
+                    <div class="stat-value">0</div>
+                </div>
+            </div>
+
+            <div class="map-container" id="mapContainer">
+                <div class="map-grid"></div>
+                <div class="map-label">📍 Live Scraping Map - New York Area</div>
+            </div>
+
+            <h3 style="margin: 20px 0 10px; font-weight: 700;">📊 Live Activity Log</h3>
+            <div class="activity-log" id="activityLog"></div>
+        </div>
+
+        <div class="card hidden" id="resultsCard">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                <div>
+                    <h2 class="card-title" style="margin: 0;">📋 Scraped Results</h2>
+                    <p style="color: #666; margin-top: 5px;"><span id="resultCount">28</span> businesses found</p>
+                </div>
+                <button class="btn-download" onclick="downloadCSV()">⬇️ Download CSV</button>
+            </div>
+
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>STATUS</th>
+                        <th>BUSINESS NAME</th>
+                        <th>PHONE</th>
+                        <th>EMAIL</th>
+                        <th>RATING</th>
+                        <th>WEBSITE</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody"></tbody>
+            </table>
+        </div>
+
+        <div class="card hidden" id="completionCard">
+            <div class="completion-screen active">
+                <div class="checkmark"></div>
+                <h2 class="completion-title">Scraping Completed!</h2>
+                <p class="completion-text">Your data is ready to download</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const businesses = [
+            {name: "In Common NYC - A Breakfast & Brunch Restaurant", phone: "(646) 370-3099", email: "weare@incommonnyc.com", rating: 4.5},
+            {name: "Sweet Dreams Café", phone: "(917) 967-0072", email: "Not given", rating: 4.7},
+            {name: "Banter NYC", phone: "Not given", email: "Not given", rating: 4.5},
+            {name: "Russ & Daughters Cafe", phone: "(212) 475-4881", email: "Not given", rating: 4.6},
+            {name: "NewsBar Café", phone: "(212) 353-1246", email: "info@newsbarny.com", rating: 4.4},
+            {name: "Park Cafe", phone: "(516) 749-0697", email: "Not given", rating: 4.8},
+            {name: "maman", phone: "(212) 226-0700", email: "Not given", rating: 4.3},
+            {name: "Café Lyria", phone: "Not given", email: "Not given", rating: 4.6},
+            {name: "Bluestone Lane Tribeca Café", phone: "(718) 374-6858", email: "Not given", rating: 4.7},
+            {name: "Union Square Cafe", phone: "(212) 243-4020", email: "Not given", rating: 4.6},
+            {name: "La Parisienne", phone: "(646) 756-4911", email: "Not given", rating: 4.6},
+            {name: "Banter NYC - West Village", phone: "Not given", email: "Not given", rating: 4.5},
+            {name: "Bibble & Sip", phone: "(646) 649-5116", email: "Not given", rating: 4.5},
+            {name: "Blue Box Café by Daniel Boulud", phone: "(212) 605-4090", email: "BBCINFO@BLUEBOXCAFENYC.COM", rating: 4.2},
+            {name: "Bluestone Lane Upper East Side Café", phone: "(718) 374-6858", email: "Not given", rating: 4.3},
+            {name: "Citizens Of Soho, A Breakfast Restaurant & Cafe", phone: "(347) 535-1245", email: "Not given", rating: 4.7},
+            {name: "Cafe Skye", phone: "Not given", email: "info@cafeskyenyc.com", rating: 4.8}
+        ];
+
+        let currentProgress = 0;
+        let scrapeInterval;
+
+        function startScraping() {
+            const keyword = document.getElementById('keyword').value;
+            const location = document.getElementById('location').value;
+
+            document.getElementById('statusCard').classList.remove('hidden');
+            document.getElementById('resultsCard').classList.remove('hidden');
+            document.getElementById('completionCard').classList.add('hidden');
+            document.getElementById('statusText').textContent = `Currently Scraping: ${keyword} - ${location}`;
+            
+            currentProgress = 0;
+            document.getElementById('scrapedCount').textContent = '0';
+            document.getElementById('activityLog').innerHTML = '';
+            document.getElementById('resultsBody').innerHTML = '';
+            document.getElementById('mapContainer').innerHTML = '<div class="map-grid"></div><div class="map-label">📍 Live Scraping Map - New York Area</div>';
+            
+            let scrapedCount = 0;
+            
+            const scrapeOne = () => {
+                if (scrapedCount >= businesses.length) {
+                    clearInterval(scrapeInterval);
+                    setTimeout(showCompletion, 500);
+                    return;
+                }
+                
+                const business = businesses[scrapedCount];
+                
+                // Add to results table
+                const tbody = document.getElementById('resultsBody');
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><span class="status-pill">✓ Scraped</span></td>
+                    <td style="font-weight: 600;">${business.name}</td>
+                    <td>${business.phone}</td>
+                    <td>${business.email}</td>
+                    <td class="rating">⭐ ${business.rating}</td>
+                    <td><a href="#" class="link">Visit</a></td>
+                `;
+                tbody.appendChild(row);
+                
+                // Add log entry
+                const log = document.getElementById('activityLog');
+                const time = new Date().toLocaleTimeString();
+                const entry = document.createElement('div');
+                entry.className = 'log-entry';
+                entry.textContent = `[${time}] ✓ Scraped: ${business.name} - Rating: ${business.rating} - Phone: ${business.phone}`;
+                log.appendChild(entry);
+                log.scrollTop = log.scrollHeight;
+                
+                // Add map pin
+                const mapContainer = document.getElementById('mapContainer');
+                const pin = document.createElement('div');
+                pin.className = 'map-pin';
+                const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#6c5ce7', '#fd79a8'];
+                const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                pin.innerHTML = `<svg viewBox="0 0 24 24" fill="${randomColor}" stroke="white" stroke-width="2">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                </svg>`;
+                pin.style.left = Math.random() * 85 + 5 + '%';
+                pin.style.top = Math.random() * 75 + 10 + '%';
+                pin.style.animationDelay = '0s';
+                mapContainer.appendChild(pin);
+                
+                // Update progress
+                scrapedCount++;
+                currentProgress = (scrapedCount / businesses.length) * 100;
+                document.getElementById('progressFill').style.width = currentProgress + '%';
+                document.getElementById('scrapedCount').textContent = scrapedCount;
+                document.getElementById('progressText').textContent = `${scrapedCount}/${businesses.length}`;
+                document.getElementById('resultCount').textContent = scrapedCount;
+            };
+            
+            scrapeInterval = setInterval(scrapeOne, 600);
+        }
+
+        function showCompletion() {
+            document.getElementById('completionCard').classList.remove('hidden');
+            setTimeout(() => {
+                window.scrollTo({
+                    top: document.getElementById('completionCard').offsetTop - 100,
+                    behavior: 'smooth'
+                });
+            }, 100);
+        }
+
+        function downloadCSV() {
+            alert('CSV download started! 📥');
+        }
+    </script>
+</body>
+</html>

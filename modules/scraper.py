@@ -284,10 +284,11 @@ class GoogleMapsScraper:
             # Find the scrollable results container
             results_panel = self.page.locator('[role="feed"]').first
             
-            # Scroll down 5 times to load up to 100 results
-            for _ in range(5):
+            # Scroll down 8 times to load up to 100+ results
+            for i in range(8):
                 await results_panel.evaluate('el => el.scrollTop = el.scrollHeight')
-                await asyncio.sleep(0.7)  # Wait for results to load
+                await asyncio.sleep(1)  # Wait for results to load
+                self.logger.debug(f"Scroll {i+1}/8 completed")
                 
         except Exception as e:
             self.logger.debug(f"Could not scroll results: {e}")
