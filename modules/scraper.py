@@ -346,13 +346,13 @@ class GoogleMapsScraper:
             
             # Create new page (tab) in the same browser
             page = await self.browser.new_page(viewport={'width': 1920, 'height': 1080})
-            page.set_default_timeout(20000)  # Reduced from 30s to 20s
+            page.set_default_timeout(15000)  # 15s for element waits
             
-            # Navigate to business page - wait for full load in Apify environment
-            await page.goto(business_url, timeout=45000, wait_until='load')
+            # Navigate to business page - increased timeout for Apify stability
+            await page.goto(business_url, timeout=60000, wait_until='load')
             
-            # Give page time to render (critical in Apify)
-            await asyncio.sleep(2)
+            # Give page time to render and avoid refresh loops (critical in Apify)
+            await asyncio.sleep(3)
             
             # Smart wait: Wait for business name
             try:
@@ -456,9 +456,9 @@ class GoogleMapsScraper:
                 tasks = []
                 for idx, url in enumerate(batch):
                     tasks.append(self._scrape_single_business(url, i + idx + 1, len(business_urls)))
-                    # Small delay between starting each tab (helps in Apify)
+                    # Longer delay between starting each tab to avoid Google detection
                     if idx < len(batch) - 1:
-                        await asyncio.sleep(0.5)
+                        await asyncio.sleep(2)
                 
                 # Run all tasks in parallel
                 results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -475,9 +475,9 @@ class GoogleMapsScraper:
                             except Exception as e:
                                 self.logger.warning(f"Error in callback: {e}")
                 
-                # Small delay between batches to avoid overwhelming browser in Apify
+                # Longer delay between batches to avoid overwhelming browser and Google detection
                 if i + max_concurrent < len(business_urls):
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(3)
             
             self.logger.info(f"✅ Parallel scraping complete! Extracted {len(businesses)} businesses")
             
