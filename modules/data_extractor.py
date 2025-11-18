@@ -483,9 +483,9 @@ class DataExtractor:
         # Common non-business email domains to filter out
         excluded_domains = [
             'example.com', 'domain.com', 'email.com', 'test.com',
-            'wix.com', 'wordpress.com', 'sentry.io', 'google.com',
-            'facebook.com', 'twitter.com', 'instagram.com', 'squarespace.com',
-            'linkedin.com', 'youtube.com', 'pinterest.com'
+            'wix.com', 'wordpress.com', 'sentry.io', 'sentry-next.wixpress.com', 'sentry.wixpress.com',
+            'google.com', 'facebook.com', 'twitter.com', 'instagram.com', 
+            'squarespace.com', 'linkedin.com', 'youtube.com', 'pinterest.com'
         ]
         
         # Image file extensions to exclude

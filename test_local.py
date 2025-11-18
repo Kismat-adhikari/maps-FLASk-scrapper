@@ -22,10 +22,10 @@ async def test_scraper():
     
     proxy_manager = ProxyManager('temp_proxies.txt', rotation_threshold=14)
     
-    # Create scraper
+    # Create scraper with headless mode
     scraper = GoogleMapsScraper(
         proxy_manager=proxy_manager,
-        headless=True,
+        headless=True,  # Headless mode for testing
         use_apify_proxy=False
     )
     
@@ -34,8 +34,8 @@ async def test_scraper():
         await scraper.initialize_browser()
         
         # Search for businesses
-        keyword = "coffee shops"
-        location = "Miami"
+        keyword = "Cafe"
+        location = "New York"
         print(f"\nSearching for: {keyword} in {location}")
         
         success = await scraper.search_google_maps(keyword, location)
@@ -43,10 +43,14 @@ async def test_scraper():
         if success:
             print("Search successful, extracting businesses...")
             
-            # Extract business data (limit to 10 for quick test)
-            businesses = await scraper.extract_business_data_parallel(max_concurrent=3)
+            # Extract business data - limit to 10 with emails enabled
+            businesses = await scraper.extract_business_data_parallel(max_concurrent=3, max_results=10)
             
             print(f"\nResults: {len(businesses)} businesses extracted")
+            
+            # Count how many have emails
+            emails_found = sum(1 for b in businesses if b.get('email') and b.get('email') != 'Not given')
+            print(f"Emails found: {emails_found}/{len(businesses)}")
             
             # Show first few results
             for i, business in enumerate(businesses[:5], 1):
