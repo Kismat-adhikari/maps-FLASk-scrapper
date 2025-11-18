@@ -36,7 +36,7 @@ async def test_scraper():
         await scraper.initialize_browser()
         
         # Search for businesses
-        keyword = "Cafe"
+        keyword = "Gym"
         location = "New York"
         print(f"\nSearching for: {keyword} in {location}")
         

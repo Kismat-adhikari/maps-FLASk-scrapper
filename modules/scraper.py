@@ -318,16 +318,36 @@ class GoogleMapsScraper:
         return businesses
     
     async def _scroll_results(self):
-        """Scroll the results panel to load more businesses - OPTIMIZED."""
+        """Scroll the results panel to load more businesses - SMART SCROLLING."""
         try:
             # Find the scrollable results container
             results_panel = self.page.locator('[role="feed"]').first
             
-            # Scroll down 8 times to load up to 100+ results
-            for i in range(8):
+            # Smart scrolling - keep scrolling until no new results load
+            previous_count = 0
+            no_change_count = 0
+            max_scrolls = 50  # Safety limit
+            
+            for i in range(max_scrolls):
+                # Count current results
+                current_count = await self.page.locator('a[href*="/maps/place/"]').count()
+                
+                # Check if we got new results
+                if current_count == previous_count:
+                    no_change_count += 1
+                    # If no new results for 3 scrolls, we've reached the end
+                    if no_change_count >= 3:
+                        self.logger.info(f"Reached end of results at {current_count} businesses after {i+1} scrolls")
+                        break
+                else:
+                    no_change_count = 0  # Reset counter
+                    self.logger.debug(f"Scroll {i+1}: Found {current_count} results (+{current_count - previous_count})")
+                
+                previous_count = current_count
+                
+                # Scroll down
                 await results_panel.evaluate('el => el.scrollTop = el.scrollHeight')
-                await asyncio.sleep(1)  # Wait for results to load
-                self.logger.debug(f"Scroll {i+1}/8 completed")
+                await asyncio.sleep(1)  # Wait for new results to load
                 
         except Exception as e:
             self.logger.debug(f"Could not scroll results: {e}")
