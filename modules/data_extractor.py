@@ -551,35 +551,34 @@ class DataExtractor:
                             pass
                         return email
                 
-                logger.info("No valid emails on homepage, trying /contact and /about pages...")
+                logger.info("No valid emails on homepage, trying other pages...")
                 
-                # Try most common pages: /contact and /about (skip less common ones for speed)
-                contact_pages = ['/contact', '/about']
+                # Try common pages in order of likelihood (most common first)
+                contact_pages = ['/contact', '/about', '/contact-us', '/contactus', '/about-us', '/menu', '/reservations']
                 
                 for page_path in contact_pages:
                     try:
                         contact_url = website_url.rstrip('/') + page_path
                         logger.info(f"Trying page: {contact_url}")
                         try:
+                            # Fast load - don't wait for everything
                             await page.goto(contact_url, timeout=timeout, wait_until='domcontentloaded')
+                            await page.wait_for_timeout(300)  # Quick wait for critical content
                         except:
                             continue  # Skip this page if it doesn't exist
                         
-                        await page.wait_for_timeout(500)  # Wait for JavaScript to load emails
-                        
-                        # Get VISIBLE rendered text
+                        # Get both visible text and HTML quickly
                         try:
                             visible_text = await page.evaluate('() => document.body.innerText')
                         except:
                             visible_text = ""
                         
-                        # Also get HTML content
                         html_content = await page.content()
                         combined_content = visible_text + " " + html_content
                         
                         emails = re.findall(email_pattern, combined_content, re.IGNORECASE)
-                        logger.info(f"Found {len(emails)} potential emails on {page_path}: {emails[:3]}")
                         
+                        # Filter and return FIRST valid email found (stop searching)
                         for email in emails:
                             email_lower = email.lower()
                             if email_lower.endswith(image_extensions):
@@ -587,12 +586,12 @@ class DataExtractor:
                             if any(domain in email_lower for domain in excluded_domains):
                                 continue
                             if '@' in email and '.' in email.split('@')[1]:
-                                logger.info(f"Found valid email on {page_path}: {email}")
+                                logger.info(f"✓ Found email on {page_path}: {email}")
                                 try:
                                     await page.goto(original_url, timeout=timeout)
                                 except:
                                     pass
-                                return email
+                                return email  # STOP as soon as we find one
                     except Exception as e:
                         logger.debug(f"Could not access {page_path}: {e}")
                         continue
