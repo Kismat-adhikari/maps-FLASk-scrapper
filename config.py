@@ -26,8 +26,8 @@ class Config:
     MIN_PROXY_COUNT = 1  # Minimum proxies required to start
     
     # Parallel scraping settings
-    PARALLEL_TABS = 4  # Number of tabs to open simultaneously (4 for speed without email extraction)
-    MAX_CONCURRENT_BUSINESSES = 4  # Max businesses to scrape at once
+    PARALLEL_TABS = 5  # Number of tabs to open simultaneously (optimized for speed)
+    MAX_CONCURRENT_BUSINESSES = 5  # Max businesses to scrape at once
     
     # Browser settings
     VIEWPORT_WIDTH = 1920
@@ -37,9 +37,9 @@ class Config:
     DEDUPLICATE_RESULTS = True  # Remove duplicate businesses
     DEDUP_METHOD = 'cid'  # Options: 'cid', 'name_address', 'none'
     
-    # Email extraction settings
-    EXTRACT_EMAILS_FROM_WEBSITES = False  # Set to True to visit websites for emails (slower but more coverage)
-    EMAIL_EXTRACTION_TIMEOUT = 4  # Max seconds to spend on each website page (balance of speed and success)
+    # Email extraction settings (DISABLED for speed - only gets emails from Google Maps)
+    EXTRACT_EMAILS_FROM_WEBSITES = False  # Website scraping disabled for maximum speed
+    EMAIL_EXTRACTION_TIMEOUT = 4  # Not used when website extraction is disabled
     
     # Rate limiting
     DELAY_BETWEEN_QUERIES = 2  # Seconds to wait between queries

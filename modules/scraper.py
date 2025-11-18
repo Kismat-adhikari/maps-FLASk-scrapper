@@ -348,19 +348,18 @@ class GoogleMapsScraper:
             page = await self.browser.new_page(viewport={'width': 1920, 'height': 1080})
             page.set_default_timeout(15000)  # 15s for element waits
             
-            # Navigate to business page - increased timeout for Apify stability
-            await page.goto(business_url, timeout=60000, wait_until='load')
+            # Navigate to business page - fast load
+            await page.goto(business_url, timeout=60000, wait_until='domcontentloaded')
             
-            # Give page time to render and avoid refresh loops (critical in Apify)
-            await asyncio.sleep(3)
+            # Quick wait for critical content to render
+            await asyncio.sleep(1.5)
             
-            # Smart wait: Wait for business name
+            # Quick wait for business name
             try:
-                await page.wait_for_selector('h1.DUwDvf, h1.fontHeadlineLarge, h1', timeout=8000, state='visible')
+                await page.wait_for_selector('h1.DUwDvf, h1.fontHeadlineLarge, h1', timeout=5000, state='visible')
             except:
-                # If name not found, wait more for slow pages
-                self.logger.debug(f"[Tab {index}/{total}] Name selector not found quickly, waiting...")
-                await asyncio.sleep(3)
+                # If name not found quickly, give it 1 more second
+                await asyncio.sleep(1)
             
             # Extract business info
             business_info = await DataExtractor.extract_detailed_business_info(page)
@@ -452,13 +451,13 @@ class GoogleMapsScraper:
                 
                 self.logger.info(f"📦 Batch {batch_num}/{total_batches} ({len(batch)} tabs)")
                 
-                # Create tasks for parallel scraping with staggered start
+                # Create tasks for parallel scraping with minimal stagger
                 tasks = []
                 for idx, url in enumerate(batch):
                     tasks.append(self._scrape_single_business(url, i + idx + 1, len(business_urls)))
-                    # Longer delay between starting each tab to avoid Google detection
+                    # Minimal delay between starting tabs for speed
                     if idx < len(batch) - 1:
-                        await asyncio.sleep(2)
+                        await asyncio.sleep(0.3)
                 
                 # Run all tasks in parallel
                 results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -475,9 +474,9 @@ class GoogleMapsScraper:
                             except Exception as e:
                                 self.logger.warning(f"Error in callback: {e}")
                 
-                # Longer delay between batches to avoid overwhelming browser and Google detection
+                # Minimal delay between batches for speed
                 if i + max_concurrent < len(business_urls):
-                    await asyncio.sleep(3)
+                    await asyncio.sleep(1)
             
             self.logger.info(f"✅ Parallel scraping complete! Extracted {len(businesses)} businesses")
             
