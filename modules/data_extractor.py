@@ -565,7 +565,7 @@ class DataExtractor:
                         except:
                             continue  # Skip this page if it doesn't exist
                         
-                        await page.wait_for_timeout(300)  # Quick wait
+                        await page.wait_for_timeout(500)  # Wait for JavaScript to load emails
                         
                         # Get VISIBLE rendered text
                         try:
