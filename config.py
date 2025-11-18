@@ -39,7 +39,7 @@ class Config:
     
     # Email extraction settings
     EXTRACT_EMAILS_FROM_WEBSITES = True  # Extract emails from business websites
-    EMAIL_EXTRACTION_TIMEOUT = 5  # Max seconds to spend on each website page (increased for Apify)
+    EMAIL_EXTRACTION_TIMEOUT = 4  # Max seconds to spend on each website page (balance of speed and success)
     
     # Rate limiting
     DELAY_BETWEEN_QUERIES = 2  # Seconds to wait between queries

@@ -551,10 +551,10 @@ class DataExtractor:
                             pass
                         return email
                 
-                logger.info("No valid emails on homepage, trying other pages...")
+                logger.info("No valid emails on homepage, trying /contact and /about...")
                 
-                # Try common pages in order of likelihood (most common first)
-                contact_pages = ['/contact', '/about', '/contact-us', '/contactus', '/about-us', '/menu', '/reservations']
+                # Only check the 2 most common pages (balance of coverage and speed)
+                contact_pages = ['/contact', '/about']
                 
                 for page_path in contact_pages:
                     try:

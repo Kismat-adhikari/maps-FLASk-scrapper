@@ -43,8 +43,8 @@ async def test_scraper():
         if success:
             print("Search successful, extracting businesses...")
             
-            # Extract business data - limit to 10 with emails enabled
-            businesses = await scraper.extract_business_data_parallel(max_concurrent=3, max_results=10)
+            # Extract business data - limit to 20 with emails enabled
+            businesses = await scraper.extract_business_data_parallel(max_concurrent=3, max_results=20)
             
             print(f"\nResults: {len(businesses)} businesses extracted")
             
@@ -52,15 +52,11 @@ async def test_scraper():
             emails_found = sum(1 for b in businesses if b.get('email') and b.get('email') != 'Not given')
             print(f"Emails found: {emails_found}/{len(businesses)}")
             
-            # Show first few results
-            for i, business in enumerate(businesses[:5], 1):
-                print(f"\n{i}. {business.get('name', 'N/A')}")
-                print(f"   Address: {business.get('full_address', 'N/A')}")
-                print(f"   Phone: {business.get('phone', 'N/A')}")
-                print(f"   Website: {business.get('website', 'N/A')}")
-            
-            if len(businesses) > 5:
-                print(f"\n... and {len(businesses) - 5} more")
+            # Show all results with email status
+            for i, business in enumerate(businesses, 1):
+                email = business.get('email', 'Not given')
+                email_status = "✓" if email != 'Not given' else "✗"
+                print(f"{i}. {business.get('name', 'N/A')[:40]} - Email: {email_status} {email if email != 'Not given' else ''}")
             
             return businesses
         else:
