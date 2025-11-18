@@ -553,8 +553,8 @@ class DataExtractor:
                 
                 logger.info("No valid emails on homepage, trying /contact and /about pages...")
                 
-                # Try multiple pages: /contact, /about, /contact-us
-                contact_pages = ['/contact', '/about', '/contact-us', '/contactus']
+                # Try most common pages: /contact and /about (skip less common ones for speed)
+                contact_pages = ['/contact', '/about']
                 
                 for page_path in contact_pages:
                     try:

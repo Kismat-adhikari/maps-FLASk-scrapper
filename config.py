@@ -39,7 +39,7 @@ class Config:
     
     # Email extraction settings
     EXTRACT_EMAILS_FROM_WEBSITES = True  # Extract emails from business websites
-    EMAIL_EXTRACTION_TIMEOUT = 3  # Max seconds to spend on each website
+    EMAIL_EXTRACTION_TIMEOUT = 2  # Max seconds to spend on each website (reduced for speed)
     
     # Rate limiting
     DELAY_BETWEEN_QUERIES = 2  # Seconds to wait between queries
