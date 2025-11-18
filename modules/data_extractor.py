@@ -155,10 +155,9 @@ class DataExtractor:
             except:
                 pass
             
-            # Extract rating and reviews - FIXED
+            # Extract rating and reviews - Multiple methods
             try:
-                # Look for the rating in the main info section
-                # Google Maps shows rating like "4.5" followed by review count
+                # Method 1: Try the main rating container
                 rating_text = await page.locator('div.F7nice').first.text_content(timeout=3000)
                 
                 if rating_text:
@@ -177,20 +176,36 @@ class DataExtractor:
                         business_info['review_count'] = int(review_str)
                         logger.debug(f"Extracted reviews: {review_str}")
             except Exception as e:
-                logger.debug(f"Could not extract rating: {e}")
-                # Try alternative method
+                logger.debug(f"Method 1 failed: {e}")
+                
+            # Method 2: Try aria-label if Method 1 failed
+            if business_info['rating'] == 'Not given' or business_info['review_count'] == 'Not given':
                 try:
-                    # Sometimes rating is in aria-label
                     rating_elem = await page.locator('span[role="img"][aria-label*="star"]').first.get_attribute('aria-label', timeout=2000)
                     if rating_elem:
                         rating = DataExtractor.clean_rating(rating_elem)
-                        if rating:
+                        if rating and business_info['rating'] == 'Not given':
                             business_info['rating'] = rating
+                            logger.debug(f"Extracted rating from aria-label: {rating}")
                         review_count = DataExtractor.extract_review_count(rating_elem)
-                        if review_count:
+                        if review_count and business_info['review_count'] == 'Not given':
                             business_info['review_count'] = review_count
-                except:
-                    pass
+                            logger.debug(f"Extracted review count from aria-label: {review_count}")
+                except Exception as e:
+                    logger.debug(f"Method 2 failed: {e}")
+            
+            # Method 3: Try button with reviews text
+            if business_info['review_count'] == 'Not given':
+                try:
+                    review_button = await page.locator('button:has-text("reviews")').first.text_content(timeout=2000)
+                    if review_button:
+                        review_match = re.search(r'([\d,]+)\s*reviews?', review_button, re.IGNORECASE)
+                        if review_match:
+                            review_str = review_match.group(1).replace(',', '')
+                            business_info['review_count'] = int(review_str)
+                            logger.debug(f"Extracted review count from button: {review_str}")
+                except Exception as e:
+                    logger.debug(f"Method 3 failed: {e}")
             
             # Extract address
             try:
@@ -536,57 +551,51 @@ class DataExtractor:
                             pass
                         return email
                 
-                logger.info("No valid emails on homepage, trying /contact page...")
+                logger.info("No valid emails on homepage, trying /contact and /about pages...")
                 
-                # Try /contact page if homepage didn't have email
-                try:
-                    contact_url = website_url.rstrip('/') + '/contact'
-                    logger.info(f"Trying contact page: {contact_url}")
+                # Try multiple pages: /contact, /about, /contact-us
+                contact_pages = ['/contact', '/about', '/contact-us', '/contactus']
+                
+                for page_path in contact_pages:
                     try:
-                        await page.goto(contact_url, timeout=timeout, wait_until='networkidle')
-                    except:
-                        await page.goto(contact_url, timeout=timeout, wait_until='domcontentloaded')
-                    
-                    await page.wait_for_timeout(500)  # Quick wait for JavaScript
-                    logger.info("Contact page loaded, extracting visible text...")
-                    
-                    # Get VISIBLE rendered text (not raw HTML)
-                    try:
-                        visible_text = await page.evaluate('() => document.body.innerText')
-                        logger.info(f"Visible text extracted: {len(visible_text)} chars")
+                        contact_url = website_url.rstrip('/') + page_path
+                        logger.info(f"Trying page: {contact_url}")
+                        try:
+                            await page.goto(contact_url, timeout=timeout, wait_until='domcontentloaded')
+                        except:
+                            continue  # Skip this page if it doesn't exist
+                        
+                        await page.wait_for_timeout(300)  # Quick wait
+                        
+                        # Get VISIBLE rendered text
+                        try:
+                            visible_text = await page.evaluate('() => document.body.innerText')
+                        except:
+                            visible_text = ""
+                        
+                        # Also get HTML content
+                        html_content = await page.content()
+                        combined_content = visible_text + " " + html_content
+                        
+                        emails = re.findall(email_pattern, combined_content, re.IGNORECASE)
+                        logger.info(f"Found {len(emails)} potential emails on {page_path}: {emails[:3]}")
+                        
+                        for email in emails:
+                            email_lower = email.lower()
+                            if email_lower.endswith(image_extensions):
+                                continue
+                            if any(domain in email_lower for domain in excluded_domains):
+                                continue
+                            if '@' in email and '.' in email.split('@')[1]:
+                                logger.info(f"Found valid email on {page_path}: {email}")
+                                try:
+                                    await page.goto(original_url, timeout=timeout)
+                                except:
+                                    pass
+                                return email
                     except Exception as e:
-                        logger.error(f"Error extracting visible text: {e}")
-                        visible_text = ""
-                    
-                    # Also get HTML content for mailto links
-                    html_content = await page.content()
-                    logger.info(f"HTML content extracted: {len(html_content)} chars")
-                    
-                    # Combine both sources
-                    combined_content = visible_text + " " + html_content
-                    
-                    emails = re.findall(email_pattern, combined_content, re.IGNORECASE)
-                    logger.info(f"Found {len(emails)} potential emails on /contact: {emails[:3]}")
-                    
-                    for email in emails:
-                        email_lower = email.lower()
-                        # Exclude image files and other non-email patterns
-                        if email_lower.endswith(image_extensions):
-                            continue
-                        # Exclude common non-business domains
-                        if any(domain in email_lower for domain in excluded_domains):
-                            continue
-                        # Additional validation
-                        if '@' in email and '.' in email.split('@')[1]:
-                            logger.info(f"Found valid email on /contact: {email}")
-                            # Return to original page
-                            try:
-                                await page.goto(original_url, timeout=timeout)
-                            except:
-                                pass
-                            return email
-                except Exception as e:
-                    logger.info(f"Could not access /contact page: {e}")
+                        logger.debug(f"Could not access {page_path}: {e}")
+                        continue
                 
             except Exception as e:
                 logger.debug(f"Could not extract email from {website_url}: {e}")
