@@ -26,8 +26,8 @@ class Config:
     MIN_PROXY_COUNT = 1  # Minimum proxies required to start
     
     # Parallel scraping settings
-    PARALLEL_TABS = 3  # Number of tabs to open simultaneously (3 for speed, 2 for stability)
-    MAX_CONCURRENT_BUSINESSES = 3  # Max businesses to scrape at once
+    PARALLEL_TABS = 4  # Number of tabs to open simultaneously (4 for speed without email extraction)
+    MAX_CONCURRENT_BUSINESSES = 4  # Max businesses to scrape at once
     
     # Browser settings
     VIEWPORT_WIDTH = 1920
