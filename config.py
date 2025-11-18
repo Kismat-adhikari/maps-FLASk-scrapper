@@ -38,7 +38,7 @@ class Config:
     DEDUP_METHOD = 'cid'  # Options: 'cid', 'name_address', 'none'
     
     # Email extraction settings
-    EXTRACT_EMAILS_FROM_WEBSITES = True  # Extract emails from business websites
+    EXTRACT_EMAILS_FROM_WEBSITES = False  # Set to True to visit websites for emails (slower but more coverage)
     EMAIL_EXTRACTION_TIMEOUT = 4  # Max seconds to spend on each website page (balance of speed and success)
     
     # Rate limiting
