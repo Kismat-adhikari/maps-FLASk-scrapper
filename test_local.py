@@ -15,6 +15,8 @@ logging.basicConfig(
 
 async def test_scraper():
     """Test the scraper locally"""
+    import time
+    start_time = time.time()
     
     # Configuration - write proxies to file
     with open('temp_proxies.txt', 'w') as f:
@@ -22,10 +24,10 @@ async def test_scraper():
     
     proxy_manager = ProxyManager('temp_proxies.txt', rotation_threshold=14)
     
-    # Create scraper with headless mode
+    # Create scraper in headless mode
     scraper = GoogleMapsScraper(
         proxy_manager=proxy_manager,
-        headless=True,  # Headless mode for testing
+        headless=True,  # Headless - no browser window
         use_apify_proxy=False
     )
     
@@ -43,8 +45,8 @@ async def test_scraper():
         if success:
             print("Search successful, extracting businesses...")
             
-            # Extract business data - limit to 10 for quick test
-            businesses = await scraper.extract_business_data_parallel(max_concurrent=4, max_results=10)
+            # Extract business data - 100 businesses (will get ~80-90)
+            businesses = await scraper.extract_business_data_parallel(max_concurrent=5, max_results=100)
             
             print(f"\nResults: {len(businesses)} businesses extracted")
             
@@ -52,21 +54,27 @@ async def test_scraper():
             emails_found = sum(1 for b in businesses if b.get('email') and b.get('email') != 'Not given')
             print(f"Emails found: {emails_found}/{len(businesses)}")
             
+            # Calculate time
+            elapsed = time.time() - start_time
+            minutes = int(elapsed // 60)
+            seconds = int(elapsed % 60)
+            
             # Save to CSV
             import csv
-            with open('test_results.csv', 'w', newline='', encoding='utf-8') as f:
+            with open('speed_test_100_businesses.csv', 'w', newline='', encoding='utf-8') as f:
                 if businesses:
                     writer = csv.DictWriter(f, fieldnames=businesses[0].keys())
                     writer.writeheader()
                     writer.writerows(businesses)
             
-            print(f"\n✓ Results saved to test_results.csv")
-            
-            # Show summary
-            for i, business in enumerate(businesses, 1):
-                email = business.get('email', 'Not given')
-                email_status = "OK" if email != 'Not given' else "NO"
-                print(f"{i}. {business.get('name', 'N/A')[:40]} - Email: {email_status}")
+            print(f"\n{'='*60}")
+            print(f"SPEED TEST RESULTS")
+            print(f"{'='*60}")
+            print(f"Businesses scraped: {len(businesses)}")
+            print(f"Time taken: {minutes}m {seconds}s")
+            print(f"Average per business: {elapsed/len(businesses):.1f}s")
+            print(f"Results saved to: speed_test_100_businesses.csv")
+            print(f"{'='*60}\n")
             
             return businesses
         else:

@@ -133,9 +133,9 @@ class GoogleMapsScraper:
             search_query = f"{keyword} {zip_code}"
             self.logger.info(f"Searching Google Maps for: {search_query}")
             
-            # Navigate to Google Maps
+            # Navigate to Google Maps with English language
             try:
-                await self.page.goto('https://www.google.com/maps', timeout=self.page_load_timeout)
+                await self.page.goto('https://www.google.com/maps?hl=en', timeout=self.page_load_timeout)
             except PlaywrightTimeout:
                 self.logger.error("Timeout loading Google Maps - possible network issue")
                 raise
@@ -265,7 +265,11 @@ class GoogleMapsScraper:
                 try:
                     self.logger.info(f"Extracting business {idx}/{len(business_urls)}...")
                     
-                    # Navigate to business page
+                    # Navigate to business page with English language
+                    if '?' in business_url:
+                        business_url += '&hl=en'
+                    else:
+                        business_url += '?hl=en'
                     await self.page.goto(business_url, timeout=self.page_load_timeout, wait_until='domcontentloaded')
                     await asyncio.sleep(1)  # Wait for details to load (optimized)
                     
@@ -347,6 +351,12 @@ class GoogleMapsScraper:
             # Create new page (tab) in the same browser
             page = await self.browser.new_page(viewport={'width': 1920, 'height': 1080})
             page.set_default_timeout(15000)  # 15s for element waits
+            
+            # Add English language parameter to URL
+            if '?' in business_url:
+                business_url += '&hl=en'
+            else:
+                business_url += '?hl=en'
             
             # Navigate to business page - fast load
             await page.goto(business_url, timeout=60000, wait_until='domcontentloaded')
@@ -649,8 +659,12 @@ class GoogleMapsScraper:
             if self.proxy_manager:
                 self.proxy_manager.increment_counter()
             
-            # Navigate to URL
+            # Navigate to URL with English language
             try:
+                if '?' in url:
+                    url += '&hl=en'
+                else:
+                    url += '?hl=en'
                 await self.page.goto(url, timeout=self.page_load_timeout)
                 await asyncio.sleep(1.5)  # Optimized from 3 seconds
             except Exception as e:
