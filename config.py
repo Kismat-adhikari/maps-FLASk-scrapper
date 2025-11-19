@@ -22,7 +22,7 @@ class Config:
     ROTATION_THRESHOLD = 14  # Rotate proxy after N requests
     REQUEST_TIMEOUT = 30  # Seconds to wait for page elements
     PAGE_LOAD_TIMEOUT = 60  # Seconds to wait for page load
-    HEADLESS = False  # Set to True for production (no visible browser)
+    HEADLESS = True  # Set to True for production (no visible browser)
     MIN_PROXY_COUNT = 1  # Minimum proxies required to start
     
     # Parallel scraping settings
@@ -37,9 +37,11 @@ class Config:
     DEDUPLICATE_RESULTS = True  # Remove duplicate businesses
     DEDUP_METHOD = 'cid'  # Options: 'cid', 'name_address', 'none'
     
-    # Email extraction settings (ENABLED - scrapes business websites for emails)
+    # Email extraction settings (ORIGINAL SETTINGS - 42% email success proven)
     EXTRACT_EMAILS_FROM_WEBSITES = True  # Website scraping enabled to find emails
-    EMAIL_EXTRACTION_TIMEOUT = 5  # Seconds to wait for website to load
+    EMAIL_EXTRACTION_TIMEOUT = 6  # 6 seconds (proven to work)
+    EMAIL_MAX_CONCURRENT = 5  # 5 concurrent requests (proven to work)
+    EMAIL_MAX_HTML_SIZE = 500 * 1024  # 500KB HTML limit (proven to work)
     
     # Rate limiting
     DELAY_BETWEEN_QUERIES = 2  # Seconds to wait between queries

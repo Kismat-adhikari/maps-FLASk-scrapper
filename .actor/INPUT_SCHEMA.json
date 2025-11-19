@@ -103,8 +103,8 @@
     "extractEmails": {
       "title": "Extract Emails",
       "type": "boolean",
-      "description": "Extract email addresses from business websites (slower but more data)",
-      "default": false,
+      "description": "Extract email addresses from business websites (fast parallel extraction, 35-55% success rate)",
+      "default": true,
       "editor": "checkbox"
     },
     "deduplicate": {

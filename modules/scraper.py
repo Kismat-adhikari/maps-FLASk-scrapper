@@ -497,7 +497,7 @@ class GoogleMapsScraper:
             # NOW: Extract emails in parallel using FAST HTTP requests (not Playwright!)
             from config import Config
             if Config.EXTRACT_EMAILS_FROM_WEBSITES and businesses:
-                self.logger.info(f"🚀 Starting FAST parallel email extraction...")
+                self.logger.info(f"🚀 Starting parallel email extraction (ORIGINAL PROVEN SETTINGS)...")
                 
                 # Get websites that need email extraction
                 websites_to_check = []
@@ -510,9 +510,16 @@ class GoogleMapsScraper:
                 if websites_to_check:
                     self.logger.info(f"Checking {len(websites_to_check)} websites for emails...")
                     
-                    # Use fast parallel email extractor
-                    from modules.email_extractor import ParallelEmailExtractor
-                    email_extractor = ParallelEmailExtractor(max_concurrent=5, timeout=6)
+                    # Use ORIGINAL PROVEN SETTINGS for email extraction
+                    from modules.email_extractor import ParallelEmailExtractor, FastEmailExtractor
+                    from config import Config
+                    max_concurrent = getattr(Config, 'EMAIL_MAX_CONCURRENT', 5)
+                    timeout = getattr(Config, 'EMAIL_EXTRACTION_TIMEOUT', 6)
+                    max_html_size = getattr(Config, 'EMAIL_MAX_HTML_SIZE', 500 * 1024)
+                    
+                    # Configure extractor with HTML size limit
+                    email_extractor = ParallelEmailExtractor(max_concurrent=max_concurrent, timeout=timeout)
+                    email_extractor.extractor.max_html_size = max_html_size
                     emails = await email_extractor.extract_emails_parallel(websites_to_check)
                     
                     # Update businesses with found emails
