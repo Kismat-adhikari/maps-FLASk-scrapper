@@ -20,8 +20,8 @@ class Config:
     # Scraper settings
     PROXY_FILE = 'proxies.txt'
     ROTATION_THRESHOLD = 14  # Rotate proxy after N requests
-    REQUEST_TIMEOUT = 30  # Seconds to wait for page elements
-    PAGE_LOAD_TIMEOUT = 60  # Seconds to wait for page load
+    REQUEST_TIMEOUT = 20  # Seconds to wait for page elements (reduced for Apify)
+    PAGE_LOAD_TIMEOUT = 30  # Seconds to wait for page load (reduced for Apify)
     HEADLESS = True  # Set to True for production (no visible browser)
     MIN_PROXY_COUNT = 1  # Minimum proxies required to start
     
