@@ -35,9 +35,9 @@ class GoogleMapsScraper:
         self.page: Optional[Page] = None
         self.logger = logging.getLogger(__name__)
         
-        # Timeouts (Optimized for speed)
-        self.request_timeout = 20000  # 20 seconds for element waits
-        self.page_load_timeout = 30000  # 30 seconds for page loads (optimized for speed)
+        # Timeouts (ULTRA-FAST for Apify)
+        self.request_timeout = 15000  # 15 seconds for element waits
+        self.page_load_timeout = 20000  # 20 seconds for page loads (ultra-fast)
     
     async def initialize_browser(self, proxy: Dict = None) -> bool:
         """
@@ -271,7 +271,7 @@ class GoogleMapsScraper:
                     else:
                         business_url += '?hl=en'
                     await self.page.goto(business_url, timeout=self.page_load_timeout, wait_until='domcontentloaded')
-                    await asyncio.sleep(0.5)  # Wait for details to load (optimized for speed)
+                    await asyncio.sleep(0.2)  # Wait for details to load (ultra-fast)
                     
                     # Extract comprehensive business info
                     business_info = await DataExtractor.extract_detailed_business_info(self.page)
@@ -347,7 +347,7 @@ class GoogleMapsScraper:
                 
                 # Scroll down
                 await results_panel.evaluate('el => el.scrollTop = el.scrollHeight')
-                await asyncio.sleep(0.5)  # Wait for new results to load (optimized for speed)
+                await asyncio.sleep(0.3)  # Wait for new results to load (ultra-fast)
                 
         except Exception as e:
             self.logger.debug(f"Could not scroll results: {e}")
@@ -370,7 +370,7 @@ class GoogleMapsScraper:
             
             # Create new page (tab) in the same browser
             page = await self.browser.new_page(viewport={'width': 1920, 'height': 1080})
-            page.set_default_timeout(15000)  # 15s for element waits
+            page.set_default_timeout(10000)  # 10s for element waits (ultra-fast)
             
             # Add English language parameter to URL
             if '?' in business_url:
@@ -389,7 +389,7 @@ class GoogleMapsScraper:
                 await page.wait_for_selector('h1.DUwDvf, h1.fontHeadlineLarge, h1', timeout=5000, state='visible')
             except:
                 # If name not found quickly, give it a bit more time
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(0.2)
             
             # Extract business info (NO email extraction here - done in parallel later!)
             business_info = await DataExtractor.extract_detailed_business_info(page)
@@ -439,7 +439,7 @@ class GoogleMapsScraper:
         
         try:
             # Quick wait for results to load
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.2)
             
             # Scroll to load more results (optimized)
             await self._scroll_results()
@@ -472,13 +472,10 @@ class GoogleMapsScraper:
                 
                 self.logger.info(f"📦 Batch {batch_num}/{total_batches} ({len(batch)} tabs)")
                 
-                # Create tasks for parallel scraping with minimal stagger
+                # Create tasks for parallel scraping (NO STAGGER - maximum speed)
                 tasks = []
                 for idx, url in enumerate(batch):
                     tasks.append(self._scrape_single_business(url, i + idx + 1, len(business_urls)))
-                    # Minimal delay between starting tabs for speed
-                    if idx < len(batch) - 1:
-                        await asyncio.sleep(0.3)
                 
                 # Run all tasks in parallel
                 results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -487,10 +484,6 @@ class GoogleMapsScraper:
                 for result in results:
                     if isinstance(result, dict) and result.get('name'):
                         businesses.append(result)
-                
-                # Minimal delay between batches for speed
-                if i + max_concurrent < len(business_urls):
-                    await asyncio.sleep(0.3)
             
             self.logger.info(f"✅ Google Maps scraping complete! Extracted {len(businesses)} businesses")
             
