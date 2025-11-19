@@ -36,8 +36,8 @@ class GoogleMapsScraper:
         self.logger = logging.getLogger(__name__)
         
         # Timeouts (OPTIMIZED for Apify - fast but stable)
-        self.request_timeout = 10000  # 10 seconds for element waits
-        self.page_load_timeout = 15000  # 15 seconds for page loads
+        self.request_timeout = 15000  # 15 seconds for element waits
+        self.page_load_timeout = 60000  # 60 seconds for page loads (Apify proxy needs more time)
         
         # Resource blocking for speed
         self.blocked_resources = [
@@ -174,7 +174,7 @@ class GoogleMapsScraper:
             
             # Navigate to Google Maps with English language
             try:
-                await self.page.goto('https://www.google.com/maps?hl=en', timeout=self.page_load_timeout)
+                await self.page.goto('https://www.google.com/maps?hl=en', timeout=self.page_load_timeout, wait_until='domcontentloaded')
             except PlaywrightTimeout:
                 self.logger.error("Timeout loading Google Maps - possible network issue")
                 raise
