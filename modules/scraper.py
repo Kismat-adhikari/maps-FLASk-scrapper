@@ -391,21 +391,11 @@ class GoogleMapsScraper:
                 # If name not found quickly, give it 1 more second
                 await asyncio.sleep(1)
             
-            # Extract business info
+            # Extract business info (NO email extraction here - done in parallel later!)
             business_info = await DataExtractor.extract_detailed_business_info(page)
             
             # Validate we got actual data
             if business_info.get('name') and business_info.get('name') != 'Not given':
-                # Extract email from website if not found on Maps
-                if business_info.get('email') == 'Not given' and business_info.get('website') != 'Not given':
-                    try:
-                        email = await DataExtractor.extract_email_from_website(page, business_info['website'])
-                        if email:
-                            business_info['email'] = email
-                            self.logger.info(f"[Tab {index}/{total}] Found email: {email}")
-                    except Exception as e:
-                        self.logger.debug(f"Could not extract email: {e}")
-                
                 self.logger.info(f"[Tab {index}/{total}] ✓ {business_info.get('name')}")
                 return business_info
             else:
@@ -432,6 +422,7 @@ class GoogleMapsScraper:
     async def extract_business_data_parallel(self, csv_callback=None, max_concurrent=3, max_results=60) -> List[Dict]:
         """
         Extract business data using parallel tabs for faster scraping.
+        NOW WITH FAST PARALLEL EMAIL EXTRACTION!
         
         Args:
             csv_callback: Optional callback function to save each business incrementally
@@ -496,19 +487,49 @@ class GoogleMapsScraper:
                 for result in results:
                     if isinstance(result, dict) and result.get('name'):
                         businesses.append(result)
-                        
-                        # Call callback for real-time updates
-                        if csv_callback:
-                            try:
-                                csv_callback(result)
-                            except Exception as e:
-                                self.logger.warning(f"Error in callback: {e}")
                 
                 # Minimal delay between batches for speed
                 if i + max_concurrent < len(business_urls):
                     await asyncio.sleep(1)
             
-            self.logger.info(f"✅ Parallel scraping complete! Extracted {len(businesses)} businesses")
+            self.logger.info(f"✅ Google Maps scraping complete! Extracted {len(businesses)} businesses")
+            
+            # NOW: Extract emails in parallel using FAST HTTP requests (not Playwright!)
+            from config import Config
+            if Config.EXTRACT_EMAILS_FROM_WEBSITES and businesses:
+                self.logger.info(f"🚀 Starting FAST parallel email extraction...")
+                
+                # Get websites that need email extraction
+                websites_to_check = []
+                business_indices = []
+                for idx, business in enumerate(businesses):
+                    if business.get('email') == 'Not given' and business.get('website') != 'Not given':
+                        websites_to_check.append(business['website'])
+                        business_indices.append(idx)
+                
+                if websites_to_check:
+                    self.logger.info(f"Checking {len(websites_to_check)} websites for emails...")
+                    
+                    # Use fast parallel email extractor
+                    from modules.email_extractor import ParallelEmailExtractor
+                    email_extractor = ParallelEmailExtractor(max_concurrent=5, timeout=6)
+                    emails = await email_extractor.extract_emails_parallel(websites_to_check)
+                    
+                    # Update businesses with found emails
+                    for idx, email in zip(business_indices, emails):
+                        if email:
+                            businesses[idx]['email'] = email
+                    
+                    emails_found = sum(1 for e in emails if e)
+                    self.logger.info(f"✅ Email extraction complete: {emails_found}/{len(websites_to_check)} found")
+            
+            # Call callback for all businesses (after email extraction)
+            if csv_callback:
+                for business in businesses:
+                    try:
+                        csv_callback(business)
+                    except Exception as e:
+                        self.logger.warning(f"Error in callback: {e}")
             
         except Exception as e:
             self.logger.error(f"Error in parallel scraping: {e}")
