@@ -37,9 +37,9 @@ class Config:
     DEDUPLICATE_RESULTS = True  # Remove duplicate businesses
     DEDUP_METHOD = 'cid'  # Options: 'cid', 'name_address', 'none'
     
-    # Email extraction settings (DISABLED for speed - only gets emails from Google Maps)
-    EXTRACT_EMAILS_FROM_WEBSITES = False  # Website scraping disabled for maximum speed
-    EMAIL_EXTRACTION_TIMEOUT = 4  # Not used when website extraction is disabled
+    # Email extraction settings (ENABLED - scrapes business websites for emails)
+    EXTRACT_EMAILS_FROM_WEBSITES = True  # Website scraping enabled to find emails
+    EMAIL_EXTRACTION_TIMEOUT = 5  # Seconds to wait for website to load
     
     # Rate limiting
     DELAY_BETWEEN_QUERIES = 2  # Seconds to wait between queries

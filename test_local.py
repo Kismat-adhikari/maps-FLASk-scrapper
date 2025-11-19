@@ -36,7 +36,7 @@ async def test_scraper():
         await scraper.initialize_browser()
         
         # Search for businesses
-        keyword = "Gym"
+        keyword = "Cafe"
         location = "New York"
         print(f"\nSearching for: {keyword} in {location}")
         
@@ -45,7 +45,7 @@ async def test_scraper():
         if success:
             print("Search successful, extracting businesses...")
             
-            # Extract business data - 100 businesses (will get ~80-90)
+            # Extract business data - 100 businesses (will get ~40-60 per query)
             businesses = await scraper.extract_business_data_parallel(max_concurrent=5, max_results=100)
             
             print(f"\nResults: {len(businesses)} businesses extracted")
