@@ -25,9 +25,9 @@ class Config:
     HEADLESS = True  # Set to True for production (no visible browser)
     MIN_PROXY_COUNT = 1  # Minimum proxies required to start
     
-    # Parallel scraping settings
-    PARALLEL_TABS = 5  # Number of tabs to open simultaneously (optimized for speed)
-    MAX_CONCURRENT_BUSINESSES = 5  # Max businesses to scrape at once
+    # Parallel scraping settings (OPTIMIZED FOR APIFY)
+    PARALLEL_TABS = 10  # Number of tabs to open simultaneously (increased for Apify)
+    MAX_CONCURRENT_BUSINESSES = 10  # Max businesses to scrape at once
     
     # Browser settings
     VIEWPORT_WIDTH = 1920

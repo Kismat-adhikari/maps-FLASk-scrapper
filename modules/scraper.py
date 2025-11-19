@@ -13,16 +13,16 @@ from modules.data_extractor import DataExtractor
 
 
 class GoogleMapsScraper:
-    """Scrapes business data from Google Maps using Playwright."""
+    """Scrapes business data from Google Maps using Playwright - OPTIMIZED FOR APIFY."""
     
-    def __init__(self, proxy_manager: ProxyManager = None, headless: bool = False, 
+    def __init__(self, proxy_manager: ProxyManager = None, headless: bool = True, 
                  use_apify_proxy: bool = False, apify_proxy_config: Dict = None):
         """
         Initialize the Google Maps scraper.
         
         Args:
             proxy_manager: ProxyManager instance for proxy rotation (optional if using Apify proxy)
-            headless: Whether to run browser in headless mode (default: False for visible)
+            headless: Whether to run browser in headless mode (default: True for Apify)
             use_apify_proxy: Whether to use Apify's proxy service
             apify_proxy_config: Apify proxy configuration dict
         """
@@ -35,9 +35,40 @@ class GoogleMapsScraper:
         self.page: Optional[Page] = None
         self.logger = logging.getLogger(__name__)
         
-        # Timeouts (ULTRA-FAST for Apify)
-        self.request_timeout = 15000  # 15 seconds for element waits
-        self.page_load_timeout = 20000  # 20 seconds for page loads (ultra-fast)
+        # Timeouts (OPTIMIZED for Apify - fast but stable)
+        self.request_timeout = 10000  # 10 seconds for element waits
+        self.page_load_timeout = 15000  # 15 seconds for page loads
+        
+        # Resource blocking for speed
+        self.blocked_resources = [
+            'image', 'media', 'font', 'stylesheet',
+            'analytics', 'beacon', 'ads', 'tracking'
+        ]
+    
+    async def _block_resources(self, route):
+        """Block heavy resources to speed up page loads."""
+        request = route.request
+        resource_type = request.resource_type
+        url = request.url
+        
+        # Block images, fonts, media, stylesheets
+        if resource_type in ['image', 'media', 'font', 'stylesheet']:
+            await route.abort()
+            return
+        
+        # Block analytics, ads, tracking
+        blocked_domains = [
+            'google-analytics.com', 'googletagmanager.com', 'doubleclick.net',
+            'facebook.com', 'twitter.com', 'analytics', 'tracking', 'ads',
+            'googlesyndication.com', 'adservice.google', 'googleadservices.com'
+        ]
+        
+        if any(domain in url for domain in blocked_domains):
+            await route.abort()
+            return
+        
+        # Continue with other requests
+        await route.continue_()
     
     async def initialize_browser(self, proxy: Dict = None) -> bool:
         """
@@ -107,7 +138,10 @@ class GoogleMapsScraper:
             # Set default timeout
             self.page.set_default_timeout(self.page_load_timeout)
             
-            self.logger.info("Browser initialized successfully")
+            # Block heavy resources for speed (images, fonts, media, ads, analytics)
+            await self.page.route("**/*", self._block_resources)
+            
+            self.logger.info("Browser initialized successfully with resource blocking")
             return True
             
         except Exception as e:
@@ -271,7 +305,7 @@ class GoogleMapsScraper:
                     else:
                         business_url += '?hl=en'
                     await self.page.goto(business_url, timeout=self.page_load_timeout, wait_until='domcontentloaded')
-                    await asyncio.sleep(0.2)  # Wait for details to load (ultra-fast)
+                    # No sleep - let Playwright handle it
                     
                     # Extract comprehensive business info
                     business_info = await DataExtractor.extract_detailed_business_info(self.page)
@@ -347,7 +381,7 @@ class GoogleMapsScraper:
                 
                 # Scroll down
                 await results_panel.evaluate('el => el.scrollTop = el.scrollHeight')
-                await asyncio.sleep(0.3)  # Wait for new results to load (ultra-fast)
+                await asyncio.sleep(0.2)  # Minimal wait for new results
                 
         except Exception as e:
             self.logger.debug(f"Could not scroll results: {e}")
@@ -372,6 +406,9 @@ class GoogleMapsScraper:
             page = await self.browser.new_page(viewport={'width': 1920, 'height': 1080})
             page.set_default_timeout(10000)  # 10s for element waits (ultra-fast)
             
+            # Block heavy resources on this tab too
+            await page.route("**/*", self._block_resources)
+            
             # Add English language parameter to URL
             if '?' in business_url:
                 business_url += '&hl=en'
@@ -388,8 +425,8 @@ class GoogleMapsScraper:
             try:
                 await page.wait_for_selector('h1.DUwDvf, h1.fontHeadlineLarge, h1', timeout=5000, state='visible')
             except:
-                # If name not found quickly, give it a bit more time
-                await asyncio.sleep(0.2)
+                # If name not found quickly, skip the wait
+                pass
             
             # Extract business info (NO email extraction here - done in parallel later!)
             business_info = await DataExtractor.extract_detailed_business_info(page)
@@ -438,8 +475,7 @@ class GoogleMapsScraper:
         businesses = []
         
         try:
-            # Quick wait for results to load
-            await asyncio.sleep(0.2)
+            # No wait - let Playwright handle it
             
             # Scroll to load more results (optimized)
             await self._scroll_results()
@@ -597,18 +633,22 @@ class GoogleMapsScraper:
                 return []
         
         try:
-            # Initialize browser with proxy (or Apify proxy)
-            success = await self.initialize_browser(proxy)
-            if not success:
-                self.logger.error("Failed to initialize browser")
-                if self.proxy_manager and proxy:
-                    self.proxy_manager.mark_failure(proxy)
-                
-                # Retry with next proxy if retries available
-                if retry_count < max_retries:
-                    self.logger.info(f"Retrying with next proxy...")
-                    return await self.scrape_query(query, csv_callback, retry_count + 1, max_retries, max_results)
-                return []
+            # Initialize browser ONLY if not already initialized (reuse browser)
+            if not self.browser or not self.page:
+                self.logger.info("Initializing browser for first time...")
+                success = await self.initialize_browser(proxy)
+                if not success:
+                    self.logger.error("Failed to initialize browser")
+                    if self.proxy_manager and proxy:
+                        self.proxy_manager.mark_failure(proxy)
+                    
+                    # Retry with next proxy if retries available
+                    if retry_count < max_retries:
+                        self.logger.info(f"Retrying with next proxy...")
+                        return await self.scrape_query(query, csv_callback, retry_count + 1, max_retries, max_results)
+                    return []
+            else:
+                self.logger.info("Reusing existing browser instance")
             
             # Increment request counter (if using custom proxies)
             if self.proxy_manager:
