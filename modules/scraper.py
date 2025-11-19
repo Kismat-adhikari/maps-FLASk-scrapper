@@ -46,21 +46,26 @@ class GoogleMapsScraper:
         ]
     
     async def _block_resources(self, route):
-        """Block heavy resources to speed up page loads."""
+        """Block heavy resources to speed up page loads - SELECTIVE blocking."""
         request = route.request
         resource_type = request.resource_type
         url = request.url
         
-        # Block images, fonts, media, stylesheets
-        if resource_type in ['image', 'media', 'font', 'stylesheet']:
+        # DON'T block scripts or XHR - Google Maps needs them
+        if resource_type in ['script', 'xhr', 'fetch', 'document']:
+            await route.continue_()
+            return
+        
+        # Block only images and fonts (keep stylesheets for layout)
+        if resource_type in ['image', 'media', 'font']:
             await route.abort()
             return
         
-        # Block analytics, ads, tracking
+        # Block analytics, ads, tracking domains
         blocked_domains = [
             'google-analytics.com', 'googletagmanager.com', 'doubleclick.net',
-            'facebook.com', 'twitter.com', 'analytics', 'tracking', 'ads',
-            'googlesyndication.com', 'adservice.google', 'googleadservices.com'
+            'facebook.com', 'twitter.com', 'googlesyndication.com', 
+            'adservice.google', 'googleadservices.com'
         ]
         
         if any(domain in url for domain in blocked_domains):
@@ -138,10 +143,10 @@ class GoogleMapsScraper:
             # Set default timeout
             self.page.set_default_timeout(self.page_load_timeout)
             
-            # Block heavy resources for speed (images, fonts, media, ads, analytics)
-            await self.page.route("**/*", self._block_resources)
+            # DON'T block resources on main page - Google Maps needs everything to work
+            # Resource blocking will be applied only on business detail pages
             
-            self.logger.info("Browser initialized successfully with resource blocking")
+            self.logger.info("Browser initialized successfully")
             return True
             
         except Exception as e:
@@ -406,8 +411,8 @@ class GoogleMapsScraper:
             page = await self.browser.new_page(viewport={'width': 1920, 'height': 1080})
             page.set_default_timeout(10000)  # 10s for element waits (ultra-fast)
             
-            # Block heavy resources on this tab too
-            await page.route("**/*", self._block_resources)
+            # Block only images on business pages (keep everything else for stability)
+            await page.route("**/*", lambda route: route.abort() if route.request.resource_type == 'image' else route.continue_())
             
             # Add English language parameter to URL
             if '?' in business_url:
