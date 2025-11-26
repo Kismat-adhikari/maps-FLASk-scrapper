@@ -113,7 +113,7 @@ class DataExtractor:
                 
                 for selector in name_selectors:
                     try:
-                        name_elem = await page.locator(selector).first.text_content(timeout=5000)
+                        name_elem = await page.locator(selector).first.text_content(timeout=1000)
                         if name_elem and name_elem.strip() and name_elem.strip() != 'Results':
                             business_info['name'] = name_elem.strip()
                             logger.debug(f"Found name with selector '{selector}': {business_info['name']}")
@@ -149,7 +149,7 @@ class DataExtractor:
             
             # Extract category
             try:
-                category_elem = await page.locator('button[jsaction*="category"]').first.text_content(timeout=3000)
+                category_elem = await page.locator('button[jsaction*="category"]').first.text_content(timeout=1000)
                 if category_elem:
                     business_info['category'] = category_elem.strip()
             except:
@@ -158,7 +158,7 @@ class DataExtractor:
             # Extract rating and reviews - Multiple methods
             try:
                 # Method 1: Try the main rating container
-                rating_text = await page.locator('div.F7nice').first.text_content(timeout=3000)
+                rating_text = await page.locator('div.F7nice').first.text_content(timeout=1000)
                 
                 if rating_text:
                     # Extract rating (first number)
@@ -181,7 +181,7 @@ class DataExtractor:
             # Method 2: Try aria-label if Method 1 failed
             if business_info['rating'] == 'Not given' or business_info['review_count'] == 'Not given':
                 try:
-                    rating_elem = await page.locator('span[role="img"][aria-label*="star"]').first.get_attribute('aria-label', timeout=2000)
+                    rating_elem = await page.locator('span[role="img"][aria-label*="star"]').first.get_attribute('aria-label', timeout=1000)
                     if rating_elem:
                         rating = DataExtractor.clean_rating(rating_elem)
                         if rating and business_info['rating'] == 'Not given':
@@ -197,7 +197,7 @@ class DataExtractor:
             # Method 3: Try button with reviews text
             if business_info['review_count'] == 'Not given':
                 try:
-                    review_button = await page.locator('button:has-text("reviews")').first.text_content(timeout=2000)
+                    review_button = await page.locator('button:has-text("reviews")').first.text_content(timeout=1000)
                     if review_button:
                         review_match = re.search(r'([\d,]+)\s*reviews?', review_button, re.IGNORECASE)
                         if review_match:
@@ -209,7 +209,7 @@ class DataExtractor:
             
             # Extract address
             try:
-                address_button = await page.locator('button[data-item-id="address"]').first.text_content(timeout=3000)
+                address_button = await page.locator('button[data-item-id="address"]').first.text_content(timeout=1000)
                 if address_button:
                     business_info['full_address'] = address_button.strip()
             except:
@@ -217,7 +217,7 @@ class DataExtractor:
             
             # Extract phone
             try:
-                phone_button = await page.locator('button[data-item-id*="phone"]').first.text_content(timeout=3000)
+                phone_button = await page.locator('button[data-item-id*="phone"]').first.text_content(timeout=1000)
                 if phone_button:
                     business_info['phone'] = DataExtractor.clean_phone_number(phone_button)
             except:
@@ -226,7 +226,7 @@ class DataExtractor:
             # Extract website (check main view first, then menu tab)
             try:
                 # Try main view first
-                website_link = await page.locator('a[data-item-id="authority"]').first.get_attribute('href', timeout=2000)
+                website_link = await page.locator('a[data-item-id="authority"]').first.get_attribute('href', timeout=1000)
                 if website_link:
                     business_info['website'] = website_link.strip()
                     logger.info(f"Found website: {website_link}")
@@ -236,11 +236,11 @@ class DataExtractor:
                     logger.debug("Website not in main view, checking menu tab...")
                     # Click on the menu/about tab
                     menu_button = page.locator('button[aria-label*="Menu"], button:has-text("Menu"), button[role="tab"]:has-text("About")')
-                    await menu_button.first.click(timeout=2000)
-                    await asyncio.sleep(0.5)
+                    await menu_button.first.click(timeout=1000)
+                    await asyncio.sleep(0.3)
                     
                     # Try to find website again
-                    website_link = await page.locator('a[data-item-id="authority"]').first.get_attribute('href', timeout=2000)
+                    website_link = await page.locator('a[data-item-id="authority"]').first.get_attribute('href', timeout=1000)
                     if website_link:
                         business_info['website'] = website_link.strip()
                         logger.info(f"Found website in menu tab: {website_link}")
@@ -250,7 +250,7 @@ class DataExtractor:
             
             # Extract plus code
             try:
-                plus_code_button = await page.locator('button[data-item-id="oloc"]').first.text_content(timeout=3000)
+                plus_code_button = await page.locator('button[data-item-id="oloc"]').first.text_content(timeout=1000)
                 if plus_code_button:
                     business_info['plus_code'] = plus_code_button.strip()
             except:
@@ -266,9 +266,9 @@ class DataExtractor:
                 
                 for selector in hours_selectors:
                     try:
-                        hours_elem = await page.locator(selector).first.get_attribute('aria-label', timeout=2000)
+                        hours_elem = await page.locator(selector).first.get_attribute('aria-label', timeout=1000)
                         if not hours_elem:
-                            hours_elem = await page.locator(selector).first.text_content(timeout=2000)
+                            hours_elem = await page.locator(selector).first.text_content(timeout=1000)
                         
                         if hours_elem and len(hours_elem) > 5:
                             business_info['opening_hours'] = hours_elem.strip()
@@ -288,7 +288,7 @@ class DataExtractor:
                 ]
                 for selector in desc_selectors:
                     try:
-                        desc_elem = await page.locator(selector).first.text_content(timeout=2000)
+                        desc_elem = await page.locator(selector).first.text_content(timeout=1000)
                         if desc_elem and len(desc_elem) > 10:
                             business_info['description'] = desc_elem.strip()
                             break
