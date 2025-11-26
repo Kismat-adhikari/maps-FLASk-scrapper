@@ -16,7 +16,8 @@ class GoogleMapsScraper:
     """Scrapes business data from Google Maps using Playwright - OPTIMIZED FOR APIFY."""
     
     def __init__(self, proxy_manager: ProxyManager = None, headless: bool = True, 
-                 use_apify_proxy: bool = False, apify_proxy_config: Dict = None):
+                 use_apify_proxy: bool = False, apify_proxy_config: Dict = None,
+                 extract_emails: bool = True):
         """
         Initialize the Google Maps scraper.
         
@@ -25,11 +26,13 @@ class GoogleMapsScraper:
             headless: Whether to run browser in headless mode (default: True for Apify)
             use_apify_proxy: Whether to use Apify's proxy service
             apify_proxy_config: Apify proxy configuration dict
+            extract_emails: Whether to extract emails from websites (default: True)
         """
         self.proxy_manager = proxy_manager
         self.headless = headless
         self.use_apify_proxy = use_apify_proxy
         self.apify_proxy_config = apify_proxy_config or {}
+        self.extract_emails = extract_emails
         self.playwright = None
         self.browser: Optional[Browser] = None
         self.page: Optional[Page] = None
@@ -546,9 +549,9 @@ class GoogleMapsScraper:
             self.logger.info(f"✅ Google Maps scraping complete! Extracted {len(businesses)} businesses")
             
             # NOW: Extract emails in parallel using FAST HTTP requests (not Playwright!)
-            from config import Config
-            if Config.EXTRACT_EMAILS_FROM_WEBSITES and businesses:
-                self.logger.info(f"🚀 Starting parallel email extraction (ORIGINAL PROVEN SETTINGS)...")
+            # Only if user enabled email extraction
+            if self.extract_emails and businesses:
+                self.logger.info(f"🚀 Starting parallel email extraction...")
                 
                 # Get websites that need email extraction
                 websites_to_check = []
@@ -580,6 +583,8 @@ class GoogleMapsScraper:
                     
                     emails_found = sum(1 for e in emails if e)
                     self.logger.info(f"✅ Email extraction complete: {emails_found}/{len(websites_to_check)} found")
+            elif not self.extract_emails:
+                self.logger.info("⏭️  Email extraction disabled - skipping website checks (faster!)")
                     
                     # Update Apify dataset with emails (push updated records)
                     if csv_callback:

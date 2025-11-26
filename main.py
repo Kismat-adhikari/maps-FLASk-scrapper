@@ -104,7 +104,8 @@ async def main():
             proxy_manager=proxy_manager,
             headless=headless,
             use_apify_proxy=use_apify_proxy,
-            apify_proxy_config=proxy_config
+            apify_proxy_config=proxy_config,
+            extract_emails=extract_emails
         )
         
         # Track statistics

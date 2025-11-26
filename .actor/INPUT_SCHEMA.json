@@ -101,9 +101,9 @@
       "editor": "checkbox"
     },
     "extractEmails": {
-      "title": "Extract Emails",
+      "title": "Extract Emails from Websites",
       "type": "boolean",
-      "description": "Extract email addresses from business websites (fast parallel extraction, 35-55% success rate)",
+      "description": "Visit business websites to find email addresses (adds 15-30s, 35-45% success rate). Only checks websites when email is not on Google Maps.",
       "default": true,
       "editor": "checkbox"
     },
