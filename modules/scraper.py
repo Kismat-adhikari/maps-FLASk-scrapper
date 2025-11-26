@@ -106,19 +106,23 @@ class GoogleMapsScraper:
                 proxy_groups = self.apify_proxy_config.get('apifyProxyGroups', ['RESIDENTIAL'])
                 proxy_country = self.apify_proxy_config.get('apifyProxyCountry', '')
                 
-                # Build Apify proxy URL
+                # Build Apify proxy URL with session rotation
                 import os
+                import random
                 apify_proxy_password = os.getenv('APIFY_PROXY_PASSWORD', '')
                 if apify_proxy_password:
-                    # Format: http://groups-{GROUPS},country-{COUNTRY}:{PASSWORD}@proxy.apify.com:8000
+                    # Format: http://groups-{GROUPS},session-{SESSION},country-{COUNTRY}:{PASSWORD}@proxy.apify.com:8000
+                    # Generate random session ID for IP rotation
+                    session_id = random.randint(100000, 999999)
+                    
                     groups_str = '+'.join(proxy_groups)
-                    proxy_url = f"http://groups-{groups_str}"
+                    proxy_url = f"http://groups-{groups_str},session-{session_id}"
                     if proxy_country:
                         proxy_url += f",country-{proxy_country}"
                     proxy_url += f":{apify_proxy_password}@proxy.apify.com:8000"
                     
                     launch_options['proxy'] = {'server': proxy_url}
-                    self.logger.info(f"Configured Apify proxy with groups: {groups_str}")
+                    self.logger.info(f"Configured Apify proxy with groups: {groups_str}, session: {session_id}")
                 else:
                     self.logger.warning("APIFY_PROXY_PASSWORD not found, proxy may not work")
             elif proxy:
@@ -639,8 +643,29 @@ class GoogleMapsScraper:
         
         try:
             # Initialize browser ONLY if not already initialized (reuse browser)
-            if not self.browser or not self.page:
-                self.logger.info("Initializing browser for first time...")
+            # BUT: For Apify proxy, we need to rotate by creating new contexts
+            should_rotate = False
+            
+            if self.use_apify_proxy:
+                # Apify proxy: Rotate every N queries for fresh IPs
+                if not hasattr(self, '_apify_query_count'):
+                    self._apify_query_count = 0
+                self._apify_query_count += 1
+                
+                # Rotate every 5 queries (configurable)
+                rotation_threshold = 5
+                if self._apify_query_count > rotation_threshold:
+                    self.logger.info(f"Rotating Apify proxy after {self._apify_query_count} queries")
+                    should_rotate = True
+                    self._apify_query_count = 0
+            
+            if not self.browser or not self.page or should_rotate:
+                if should_rotate:
+                    self.logger.info("Closing browser to rotate Apify proxy...")
+                    await self.close_browser()
+                else:
+                    self.logger.info("Initializing browser for first time...")
+                
                 success = await self.initialize_browser(proxy)
                 if not success:
                     self.logger.error("Failed to initialize browser")
