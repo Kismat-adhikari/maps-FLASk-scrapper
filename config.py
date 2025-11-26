@@ -26,8 +26,8 @@ class Config:
     MIN_PROXY_COUNT = 1  # Minimum proxies required to start
     
     # Parallel scraping settings (OPTIMIZED FOR APIFY)
-    PARALLEL_TABS = 7  # Number of tabs to open simultaneously (maximum speed)
-    MAX_CONCURRENT_BUSINESSES = 7  # Max businesses to scrape at once
+    PARALLEL_TABS = 10  # Number of tabs to open simultaneously (MAXIMUM SPEED)
+    MAX_CONCURRENT_BUSINESSES = 10  # Max businesses to scrape at once
     
     # Browser settings
     VIEWPORT_WIDTH = 1920
@@ -39,9 +39,9 @@ class Config:
     
     # Email extraction settings (OPTIMIZED for speed)
     EXTRACT_EMAILS_FROM_WEBSITES = True  # Website scraping enabled to find emails
-    EMAIL_EXTRACTION_TIMEOUT = 2  # 2 seconds (ultra-fast)
-    EMAIL_MAX_CONCURRENT = 15  # 15 concurrent requests (maximum speed)
-    EMAIL_MAX_HTML_SIZE = 200 * 1024  # 200KB HTML limit (faster downloads)
+    EMAIL_EXTRACTION_TIMEOUT = 1.5  # 1.5 seconds (INSANE SPEED)
+    EMAIL_MAX_CONCURRENT = 20  # 20 concurrent requests (MAXIMUM SPEED)
+    EMAIL_MAX_HTML_SIZE = 150 * 1024  # 150KB HTML limit (lightning fast)
     
     # Rate limiting
     DELAY_BETWEEN_QUERIES = 0  # No delay (proxies handle rate limiting)

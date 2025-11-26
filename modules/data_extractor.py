@@ -113,7 +113,7 @@ class DataExtractor:
                 
                 for selector in name_selectors:
                     try:
-                        name_elem = await page.locator(selector).first.text_content(timeout=1000)
+                        name_elem = await page.locator(selector).first.text_content(timeout=500)
                         if name_elem and name_elem.strip() and name_elem.strip() != 'Results':
                             business_info['name'] = name_elem.strip()
                             logger.debug(f"Found name with selector '{selector}': {business_info['name']}")
@@ -149,7 +149,7 @@ class DataExtractor:
             
             # Extract category
             try:
-                category_elem = await page.locator('button[jsaction*="category"]').first.text_content(timeout=1000)
+                category_elem = await page.locator('button[jsaction*="category"]').first.text_content(timeout=500)
                 if category_elem:
                     business_info['category'] = category_elem.strip()
             except:
@@ -158,7 +158,7 @@ class DataExtractor:
             # Extract rating and reviews - Multiple methods
             try:
                 # Method 1: Try the main rating container
-                rating_text = await page.locator('div.F7nice').first.text_content(timeout=1000)
+                rating_text = await page.locator('div.F7nice').first.text_content(timeout=500)
                 
                 if rating_text:
                     # Extract rating (first number)
@@ -209,7 +209,7 @@ class DataExtractor:
             
             # Extract address
             try:
-                address_button = await page.locator('button[data-item-id="address"]').first.text_content(timeout=1000)
+                address_button = await page.locator('button[data-item-id="address"]').first.text_content(timeout=500)
                 if address_button:
                     business_info['full_address'] = address_button.strip()
             except:
@@ -217,7 +217,7 @@ class DataExtractor:
             
             # Extract phone
             try:
-                phone_button = await page.locator('button[data-item-id*="phone"]').first.text_content(timeout=1000)
+                phone_button = await page.locator('button[data-item-id*="phone"]').first.text_content(timeout=500)
                 if phone_button:
                     business_info['phone'] = DataExtractor.clean_phone_number(phone_button)
             except:
@@ -226,7 +226,7 @@ class DataExtractor:
             # Extract website (check main view first, then menu tab)
             try:
                 # Try main view first
-                website_link = await page.locator('a[data-item-id="authority"]').first.get_attribute('href', timeout=1000)
+                website_link = await page.locator('a[data-item-id="authority"]').first.get_attribute('href', timeout=500)
                 if website_link:
                     business_info['website'] = website_link.strip()
                     logger.info(f"Found website: {website_link}")
@@ -236,11 +236,11 @@ class DataExtractor:
                     logger.debug("Website not in main view, checking menu tab...")
                     # Click on the menu/about tab
                     menu_button = page.locator('button[aria-label*="Menu"], button:has-text("Menu"), button[role="tab"]:has-text("About")')
-                    await menu_button.first.click(timeout=1000)
-                    await asyncio.sleep(0.3)
+                    await menu_button.first.click(timeout=500)
+                    # No sleep - instant extraction
                     
                     # Try to find website again
-                    website_link = await page.locator('a[data-item-id="authority"]').first.get_attribute('href', timeout=1000)
+                    website_link = await page.locator('a[data-item-id="authority"]').first.get_attribute('href', timeout=500)
                     if website_link:
                         business_info['website'] = website_link.strip()
                         logger.info(f"Found website in menu tab: {website_link}")
