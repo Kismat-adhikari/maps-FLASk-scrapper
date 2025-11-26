@@ -35,9 +35,9 @@ class GoogleMapsScraper:
         self.page: Optional[Page] = None
         self.logger = logging.getLogger(__name__)
         
-        # Timeouts (OPTIMIZED for Apify - increased for residential proxies)
-        self.request_timeout = 20000  # 20 seconds for element waits
-        self.page_load_timeout = 120000  # 120 seconds for page loads (Apify residential proxy needs more time)
+        # Timeouts (OPTIMIZED for Apify - balanced for speed and stability)
+        self.request_timeout = 10000  # 10 seconds for element waits (fail fast)
+        self.page_load_timeout = 30000  # 30 seconds for page loads (custom proxies are fast)
         
         # Resource blocking for speed
         self.blocked_resources = [
@@ -434,15 +434,15 @@ class GoogleMapsScraper:
             else:
                 business_url += '?hl=en'
             
-            # Navigate to business page - fast load
-            await page.goto(business_url, timeout=60000, wait_until='domcontentloaded')
+            # Navigate to business page - fast load with shorter timeout
+            await page.goto(business_url, timeout=20000, wait_until='domcontentloaded')
             
             # Quick wait for critical content to render
-            await asyncio.sleep(1.5)
+            await asyncio.sleep(1.0)
             
             # Quick wait for business name
             try:
-                await page.wait_for_selector('h1.DUwDvf, h1.fontHeadlineLarge, h1', timeout=5000, state='visible')
+                await page.wait_for_selector('h1.DUwDvf, h1.fontHeadlineLarge, h1', timeout=3000, state='visible')
             except:
                 # If name not found quickly, skip the wait
                 pass
