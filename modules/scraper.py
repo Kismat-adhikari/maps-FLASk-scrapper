@@ -35,9 +35,9 @@ class GoogleMapsScraper:
         self.page: Optional[Page] = None
         self.logger = logging.getLogger(__name__)
         
-        # Timeouts (OPTIMIZED for Apify - balanced for speed and stability)
-        self.request_timeout = 10000  # 10 seconds for element waits (fail fast)
-        self.page_load_timeout = 30000  # 30 seconds for page loads (custom proxies are fast)
+        # Timeouts (OPTIMIZED for Apify - ultra-fast)
+        self.request_timeout = 8000  # 8 seconds for element waits (fail fast)
+        self.page_load_timeout = 20000  # 20 seconds for page loads (fast proxies)
         
         # Resource blocking for speed
         self.blocked_resources = [
@@ -400,7 +400,7 @@ class GoogleMapsScraper:
                 
                 # Scroll down
                 await results_panel.evaluate('el => el.scrollTop = el.scrollHeight')
-                await asyncio.sleep(0.1)  # Ultra-fast scrolling
+                # No sleep - instant scrolling
                 
         except Exception as e:
             self.logger.debug(f"Could not scroll results: {e}")
@@ -434,8 +434,8 @@ class GoogleMapsScraper:
             else:
                 business_url += '?hl=en'
             
-            # Navigate to business page - fast load with shorter timeout
-            await page.goto(business_url, timeout=15000, wait_until='domcontentloaded')
+            # Navigate to business page - ultra-fast load
+            await page.goto(business_url, timeout=12000, wait_until='domcontentloaded')
             
             # No sleep - extract immediately after page load
             
