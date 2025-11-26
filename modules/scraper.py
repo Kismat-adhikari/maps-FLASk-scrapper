@@ -583,8 +583,6 @@ class GoogleMapsScraper:
                     
                     emails_found = sum(1 for e in emails if e)
                     self.logger.info(f"✅ Email extraction complete: {emails_found}/{len(websites_to_check)} found")
-            elif not self.extract_emails:
-                self.logger.info("⏭️  Email extraction disabled - skipping website checks (faster!)")
                     
                     # Update Apify dataset with emails (push updated records)
                     if csv_callback:
@@ -599,6 +597,8 @@ class GoogleMapsScraper:
                                         csv_callback(businesses[idx])
                                 except Exception as e:
                                     self.logger.warning(f"Error updating business with email: {e}")
+            elif not self.extract_emails:
+                self.logger.info("⏭️  Email extraction disabled - skipping website checks (faster!)")
             
         except Exception as e:
             self.logger.error(f"Error in parallel scraping: {e}")
