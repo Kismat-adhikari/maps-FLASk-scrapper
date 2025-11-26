@@ -68,7 +68,7 @@
       "editor": "proxy",
       "default": {
         "useApifyProxy": true,
-        "apifyProxyGroups": ["SHADER"]
+        "apifyProxyGroups": ["RESIDENTIAL"]
       }
     },
     "customProxies": {
