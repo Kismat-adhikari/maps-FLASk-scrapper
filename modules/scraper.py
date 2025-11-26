@@ -213,7 +213,7 @@ class GoogleMapsScraper:
             await search_button.click()
             
             # Wait for results to load (optimized)
-            await asyncio.sleep(1.5)  # Reduced from 3 seconds
+            await asyncio.sleep(0.5)  # Minimal wait
             
             # Check for CAPTCHA again after search
             if await self._detect_captcha():
@@ -400,7 +400,7 @@ class GoogleMapsScraper:
                 
                 # Scroll down
                 await results_panel.evaluate('el => el.scrollTop = el.scrollHeight')
-                await asyncio.sleep(0.2)  # Minimal wait for new results
+                await asyncio.sleep(0.1)  # Ultra-fast scrolling
                 
         except Exception as e:
             self.logger.debug(f"Could not scroll results: {e}")
@@ -435,17 +435,9 @@ class GoogleMapsScraper:
                 business_url += '?hl=en'
             
             # Navigate to business page - fast load with shorter timeout
-            await page.goto(business_url, timeout=20000, wait_until='domcontentloaded')
+            await page.goto(business_url, timeout=15000, wait_until='domcontentloaded')
             
-            # Quick wait for critical content to render
-            await asyncio.sleep(1.0)
-            
-            # Quick wait for business name
-            try:
-                await page.wait_for_selector('h1.DUwDvf, h1.fontHeadlineLarge, h1', timeout=3000, state='visible')
-            except:
-                # If name not found quickly, skip the wait
-                pass
+            # No sleep - extract immediately after page load
             
             # Extract business info (NO email extraction here - done in parallel later!)
             business_info = await DataExtractor.extract_detailed_business_info(page)
