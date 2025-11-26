@@ -662,7 +662,7 @@ class GoogleMapsScraper:
         
         try:
             # Initialize browser ONLY if not already initialized (reuse browser)
-            # BUT: For Apify proxy, we need to rotate by creating new contexts
+            # BUT: Rotate proxy when threshold is reached
             should_rotate = False
             
             if self.use_apify_proxy:
@@ -677,6 +677,11 @@ class GoogleMapsScraper:
                     self.logger.info(f"Rotating Apify proxy after {self._apify_query_count} queries")
                     should_rotate = True
                     self._apify_query_count = 0
+            elif self.proxy_manager:
+                # Custom proxy: Check if rotation threshold reached
+                if self.proxy_manager.should_rotate():
+                    self.logger.info(f"Rotation threshold reached, closing browser to switch proxy")
+                    should_rotate = True
             
             if not self.browser or not self.page or should_rotate:
                 if should_rotate:
