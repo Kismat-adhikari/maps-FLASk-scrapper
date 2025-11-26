@@ -527,10 +527,21 @@ class GoogleMapsScraper:
                 # Run all tasks in parallel
                 results = await asyncio.gather(*tasks, return_exceptions=True)
                 
-                # Process results immediately
+                # Process results immediately and push to callback (real-time updates!)
                 for result in results:
                     if isinstance(result, dict) and result.get('name'):
                         businesses.append(result)
+                        # Push immediately to Apify for real-time viewing
+                        if csv_callback:
+                            try:
+                                # Support both sync and async callbacks
+                                import inspect
+                                if inspect.iscoroutinefunction(csv_callback):
+                                    await csv_callback(result)
+                                else:
+                                    csv_callback(result)
+                            except Exception as e:
+                                self.logger.warning(f"Error in callback: {e}")
             
             self.logger.info(f"✅ Google Maps scraping complete! Extracted {len(businesses)} businesses")
             
@@ -569,14 +580,20 @@ class GoogleMapsScraper:
                     
                     emails_found = sum(1 for e in emails if e)
                     self.logger.info(f"✅ Email extraction complete: {emails_found}/{len(websites_to_check)} found")
-            
-            # Call callback for all businesses (after email extraction)
-            if csv_callback:
-                for business in businesses:
-                    try:
-                        csv_callback(business)
-                    except Exception as e:
-                        self.logger.warning(f"Error in callback: {e}")
+                    
+                    # Update Apify dataset with emails (push updated records)
+                    if csv_callback:
+                        for idx, email in zip(business_indices, emails):
+                            if email:
+                                try:
+                                    # Push updated business with email
+                                    import inspect
+                                    if inspect.iscoroutinefunction(csv_callback):
+                                        await csv_callback(businesses[idx])
+                                    else:
+                                        csv_callback(businesses[idx])
+                                except Exception as e:
+                                    self.logger.warning(f"Error updating business with email: {e}")
             
         except Exception as e:
             self.logger.error(f"Error in parallel scraping: {e}")

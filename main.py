@@ -125,15 +125,21 @@ async def main():
             await Actor.set_status_message(f"Scraping {idx}/{len(queries)}: {query_desc}")
             
             try:
-                # Scrape the query
-                businesses = await scraper.scrape_query(query, max_results=max_results_per_query)
+                # Define callback to push data in real-time
+                async def push_business_realtime(business):
+                    """Push business to Apify dataset immediately for real-time viewing"""
+                    await Actor.push_data(business)
+                    nonlocal total_businesses
+                    total_businesses += 1
+                
+                # Scrape the query with real-time callback
+                businesses = await scraper.scrape_query(
+                    query, 
+                    csv_callback=push_business_realtime,
+                    max_results=max_results_per_query
+                )
                 
                 if businesses:
-                    # Push results to Apify Dataset
-                    for business in businesses:
-                        await Actor.push_data(business)
-                    
-                    total_businesses += len(businesses)
                     successful_queries += 1
                     logger.info(f"✓ Query successful: {len(businesses)} businesses found")
                 else:
