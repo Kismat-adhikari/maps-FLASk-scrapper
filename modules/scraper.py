@@ -35,9 +35,9 @@ class GoogleMapsScraper:
         self.page: Optional[Page] = None
         self.logger = logging.getLogger(__name__)
         
-        # Timeouts (OPTIMIZED for Apify - fast but stable)
-        self.request_timeout = 15000  # 15 seconds for element waits
-        self.page_load_timeout = 60000  # 60 seconds for page loads (Apify proxy needs more time)
+        # Timeouts (OPTIMIZED for Apify - increased for residential proxies)
+        self.request_timeout = 20000  # 20 seconds for element waits
+        self.page_load_timeout = 120000  # 120 seconds for page loads (Apify residential proxy needs more time)
         
         # Resource blocking for speed
         self.blocked_resources = [
@@ -137,7 +137,9 @@ class GoogleMapsScraper:
                 self.logger.info("Launching browser without proxy")
             
             # Launch browser
+            self.logger.info("Launching Chromium browser...")
             self.browser = await self.playwright.chromium.launch(**launch_options)
+            self.logger.info("Browser launched, creating page...")
             
             # Create new page with viewport settings
             self.page = await self.browser.new_page(
@@ -146,6 +148,7 @@ class GoogleMapsScraper:
             
             # Set default timeout
             self.page.set_default_timeout(self.page_load_timeout)
+            self.logger.info(f"Page created with timeout: {self.page_load_timeout}ms")
             
             # DON'T block resources on main page - Google Maps needs everything to work
             # Resource blocking will be applied only on business detail pages
@@ -177,11 +180,18 @@ class GoogleMapsScraper:
             self.logger.info(f"Searching Google Maps for: {search_query}")
             
             # Navigate to Google Maps with English language
+            # Use 'load' instead of 'domcontentloaded' for better compatibility with proxies
             try:
-                await self.page.goto('https://www.google.com/maps?hl=en', timeout=self.page_load_timeout, wait_until='domcontentloaded')
+                await self.page.goto('https://www.google.com/maps?hl=en', timeout=self.page_load_timeout, wait_until='load')
+                self.logger.info("Google Maps loaded successfully")
             except PlaywrightTimeout:
-                self.logger.error("Timeout loading Google Maps - possible network issue")
-                raise
+                self.logger.error("Timeout loading Google Maps - possible proxy issue")
+                # Try one more time with 'domcontentloaded'
+                try:
+                    await self.page.goto('https://www.google.com/maps?hl=en', timeout=self.page_load_timeout, wait_until='domcontentloaded')
+                    self.logger.info("Google Maps loaded on retry")
+                except:
+                    raise
             except Exception as e:
                 self.logger.error(f"Network error loading Google Maps: {e}")
                 raise
