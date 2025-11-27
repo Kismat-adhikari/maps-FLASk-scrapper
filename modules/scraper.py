@@ -426,7 +426,7 @@ class GoogleMapsScraper:
             
             # Create new page (tab) in the same browser
             page = await self.browser.new_page(viewport={'width': 1920, 'height': 1080})
-            page.set_default_timeout(10000)  # 10s for element waits (ultra-fast)
+            page.set_default_timeout(20000)  # 20s timeout (balanced speed/reliability)
             
             # Block only images on business pages (keep everything else for stability)
             await page.route("**/*", lambda route: route.abort() if route.request.resource_type == 'image' else route.continue_())
@@ -437,8 +437,8 @@ class GoogleMapsScraper:
             else:
                 business_url += '?hl=en'
             
-            # Navigate to business page - INSANE SPEED
-            await page.goto(business_url, timeout=10000, wait_until='domcontentloaded')
+            # Navigate to business page - balanced timeout
+            await page.goto(business_url, timeout=20000, wait_until='domcontentloaded')
             
             # No sleep - extract immediately after page load
             
